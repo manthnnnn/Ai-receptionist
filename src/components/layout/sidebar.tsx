@@ -12,7 +12,8 @@ import {
   Cpu, 
   PhoneForwarded,
   Activity,
-  Settings
+  Settings,
+  Lock
 } from 'lucide-react';
 
 const navItems = [
@@ -29,9 +30,9 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-[240px] bg-white border-r border-surface-200/80 flex flex-col justify-between py-4 min-h-[calc(100vh-57px)]">
+    <aside className="w-[240px] bg-slate-950/80 border-r border-white/[0.08] flex flex-col justify-between py-5 min-h-[calc(100vh-61px)]">
       {/* Navigation */}
-      <nav className="px-3 space-y-0.5">
+      <nav className="px-3 space-y-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
           const Icon = item.icon;
@@ -40,13 +41,13 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-apple text-[13px] font-medium transition-apple ${
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-apple text-[13px] font-medium transition-apple ${
                 isActive
-                  ? 'bg-primary-50 text-primary-600'
-                  : 'text-surface-500 hover:text-surface-800 hover:bg-surface-50'
+                  ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30 shadow-glow-cyan'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
               }`}
             >
-              <Icon className={`w-[18px] h-[18px] ${isActive ? 'text-primary-500' : 'text-surface-400'}`} strokeWidth={1.5} />
+              <Icon className={`w-[17px] h-[17px] ${isActive ? 'text-sky-400' : 'text-slate-500'}`} strokeWidth={1.8} />
               <span>{item.name}</span>
             </Link>
           );
@@ -55,31 +56,37 @@ export function Sidebar() {
 
       {/* Voice Pipeline Card */}
       <div className="mx-3 mt-6">
-        <div className="bg-surface-50 border border-surface-200 rounded-apple-lg p-3.5 text-xs space-y-2.5">
-          <div className="flex items-center gap-2 text-surface-700 font-semibold pb-2 border-b border-surface-200">
-            <Activity className="w-3.5 h-3.5 text-primary-500" strokeWidth={1.5} />
-            <span>Voice Pipeline</span>
+        <div className="glass-panel rounded-apple-xl p-3.5 text-xs space-y-2.5 border border-white/[0.08]">
+          <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+            <div className="flex items-center gap-1.5 text-slate-200 font-semibold text-[11px]">
+              <Activity className="w-3.5 h-3.5 text-sky-400" strokeWidth={2} />
+              <span>Pipeline Status</span>
+            </div>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           </div>
-          <ul className="space-y-1.5 text-surface-500 font-mono text-[11px]">
+          <ul className="space-y-1.5 text-slate-400 font-mono text-[11px]">
             <li className="flex justify-between">
-              <span>VAD</span>
-              <span className="text-surface-700 font-medium">Silero (Local)</span>
+              <span className="text-slate-500">VAD</span>
+              <span className="text-slate-200 font-medium">Silero (Local)</span>
             </li>
             <li className="flex justify-between">
-              <span>STT</span>
-              <span className="text-surface-700 font-medium">Deepgram Nova-2</span>
+              <span className="text-slate-500">STT</span>
+              <span className="text-slate-200 font-medium">Deepgram Nova-2</span>
             </li>
             <li className="flex justify-between">
-              <span>LLM</span>
-              <span className="text-surface-700 font-medium">Groq LLaMA 3.1</span>
+              <span className="text-slate-500">LLM</span>
+              <span className="text-sky-300 font-medium">Groq LLaMA 3.1</span>
             </li>
             <li className="flex justify-between">
-              <span>TTS</span>
-              <span className="text-surface-700 font-medium">Cartesia Sonic</span>
+              <span className="text-slate-500">TTS</span>
+              <span className="text-slate-200 font-medium">Cartesia Sonic</span>
             </li>
-            <li className="flex justify-between">
-              <span>Lock</span>
-              <span className="text-emerald-600 font-semibold">SELECT FOR UPDATE</span>
+            <li className="flex justify-between items-center pt-1 border-t border-white/[0.05]">
+              <span className="text-slate-500 flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5 text-emerald-400" />
+                Concurrency
+              </span>
+              <span className="text-emerald-400 font-semibold text-[10px]">ADVISORY LOCK</span>
             </li>
           </ul>
         </div>

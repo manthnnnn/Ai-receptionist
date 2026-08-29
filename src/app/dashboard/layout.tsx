@@ -11,7 +11,7 @@ import { BookingModal } from '@/components/appointments/booking-modal';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClinicProvider>
-      <div className="min-h-screen flex flex-col bg-apple-bg text-surface-900">
+      <div className="min-h-screen flex flex-col bg-mesh-dark text-slate-100">
         {/* Top Header */}
         <Header />
 
@@ -21,7 +21,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Sidebar />
 
           {/* Main Content View */}
-          <main className="flex-1 overflow-y-auto p-6 md:p-8">
+          <main className="flex-1 overflow-y-auto p-6 md:p-8 relative">
+            <div className="absolute top-0 right-1/4 w-96 h-96 bg-sky-500/5 rounded-full blur-3xl pointer-events-none -z-10" />
             {children}
           </main>
         </div>
