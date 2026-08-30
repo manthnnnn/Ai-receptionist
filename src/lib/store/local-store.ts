@@ -373,8 +373,48 @@ class LocalStore {
     return this.clinics.find((c) => c.id === id);
   }
 
+  getClinicByPhone(phone: string): Clinic | undefined {
+    const cleaned = phone.replace(/[^0-9+]/g, '');
+    return this.clinics.find((c) => {
+      const cCleaned = c.phone_number.replace(/[^0-9+]/g, '');
+      return cCleaned === cleaned || cleaned.endsWith(cCleaned.replace(/^\+91/, '')) || cCleaned.endsWith(cleaned.replace(/^\+91/, ''));
+    }) || this.clinics[0];
+  }
+
+  updateClinic(id: string, updates: Partial<Clinic>): Clinic | undefined {
+    const clinic = this.clinics.find((c) => c.id === id);
+    if (!clinic) return undefined;
+    Object.assign(clinic, updates, { updated_at: new Date().toISOString() });
+    return clinic;
+  }
+
   getClinicSettings(clinicId: string): ClinicSettings | undefined {
     return this.settings.find((s) => s.clinic_id === clinicId);
+  }
+
+  updateClinicSettings(clinicId: string, updates: Partial<ClinicSettings>): ClinicSettings {
+    let settings = this.settings.find((s) => s.clinic_id === clinicId);
+    if (!settings) {
+      settings = {
+        id: `set-${Date.now()}`,
+        clinic_id: clinicId,
+        operating_hours: {
+          mon: '09:30-19:30',
+          tue: '09:30-19:30',
+          wed: '09:30-19:30',
+          thu: '09:30-19:30',
+          fri: '09:30-19:30',
+          sat: '10:00-16:00',
+          sun: 'closed',
+        },
+        ai_greeting: 'Hello! Thank you for calling our clinic. How can I help you today?',
+        ai_enabled: true,
+        primary_handoff_number: '+91-98765-00001',
+      };
+      this.settings.push(settings);
+    }
+    Object.assign(settings, updates);
+    return settings;
   }
 
   // Doctor Operations
@@ -584,15 +624,30 @@ class LocalStore {
     return this.callLogs.filter((c) => c.clinic_id === clinicId);
   }
 
-  logCall(call: Omit<CallLog, 'id' | 'created_at' | 'started_at'> & { started_at?: string }): CallLog {
+  getCallLogById(id: string): CallLog | undefined {
+    return this.callLogs.find((c) => c.id === id);
+  }
+
+  getCallLogBySid(sid: string): CallLog | undefined {
+    return this.callLogs.find((c) => (c as any).call_sid === sid || c.id === sid);
+  }
+
+  logCall(call: Omit<CallLog, 'id' | 'created_at' | 'started_at'> & { id?: string; started_at?: string; call_sid?: string }): CallLog {
     const newLog: CallLog = {
       started_at: call.started_at || new Date().toISOString(),
       ...call,
-      id: `call-${Date.now()}`,
+      id: call.id || (call as any).call_sid || `call-${Date.now()}`,
       created_at: new Date().toISOString(),
     };
     this.callLogs.unshift(newLog);
     return newLog;
+  }
+
+  updateCallLog(idOrSid: string, updates: Partial<CallLog>): CallLog | undefined {
+    const log = this.callLogs.find((c) => c.id === idOrSid || (c as any).call_sid === idOrSid);
+    if (!log) return undefined;
+    Object.assign(log, updates);
+    return log;
   }
 
   // FAQs
