@@ -1,60 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 
-// Production Neural TTS via ElevenLabs or Groq PlayAI
-// Falls back gracefully to SSML-enhanced browser TTS guidance
+// Microsoft Edge Neural TTS — same voices as Windows 11, Cortana, Azure Neural
+// 100% FREE. No API key. No account. ChatGPT-level naturalness.
+//
+// Voice quality chart:
+//  mr-IN-AarohiNeural  — Marathi female,  warm & natural
+//  hi-IN-SwaraNeural   — Hindi female,    most human-sounding Hindi voice ever made
+//  en-IN-NeerjaNeural  — Indian English,  clear, confident, empathetic
+//  en-US-AriaNeural    — US English,      ChatGPT-like emotional expressiveness
+
+const VOICE_MAP: Record<string, string> = {
+  mr: 'mr-IN-AarohiNeural',
+  hi: 'hi-IN-SwaraNeural',
+  en: 'en-IN-NeerjaNeural',
+};
+
+// Max characters per chunk to prevent Edge TTS from hanging on very long text
+const CHUNK_SIZE = 180;
+
+function splitToChunks(text: string): string[] {
+  // Split on sentence boundaries for natural prosody
+  const sentences = text.match(/[^।.!?]+[।.!?]+/g) || [text];
+  const chunks: string[] = [];
+  let current = '';
+
+  for (const s of sentences) {
+    if ((current + s).length > CHUNK_SIZE) {
+      if (current.trim()) chunks.push(current.trim());
+      current = s;
+    } else {
+      current += s;
+    }
+  }
+  if (current.trim()) chunks.push(current.trim());
+  return chunks.length > 0 ? chunks : [text];
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { text, lang } = await req.json();
-
-    if (!text) {
+    if (!text?.trim()) {
       return NextResponse.json({ error: 'No text provided' }, { status: 400 });
     }
 
-    const elevenLabsKey = process.env.ELEVENLABS_API_KEY;
+    const voice = VOICE_MAP[lang as string] || VOICE_MAP['en'];
+    const tts = new MsEdgeTTS();
+    await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
 
-    // ── Try ElevenLabs Neural TTS (Production Grade) ──────────────
-    if (elevenLabsKey) {
-      // Pick voice ID based on language
-      // Maya: Indian English warm female voice
-      const voiceId =
-        lang === 'hi' || lang === 'mr'
-          ? 'EXAVITQu4vr4xnSDxMaL' // Bella - warm female, works well for Indian languages
-          : 'EXAVITQu4vr4xnSDxMaL'; // Bella for all for now
+    const chunks = splitToChunks(text.trim());
+    const audioChunks: Buffer[] = [];
 
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'xi-api-key': elevenLabsKey,
-        },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_multilingual_v2',
-          voice_settings: {
-            stability: 0.42,
-            similarity_boost: 0.82,
-            style: 0.38,
-            use_speaker_boost: true,
-          },
-        }),
+    for (const chunk of chunks) {
+      const { audioStream } = await tts.toStream(chunk);
+      const chunkBuffers: Buffer[] = [];
+      await new Promise<void>((resolve, reject) => {
+        audioStream.on('data', (d: Buffer) => chunkBuffers.push(d));
+        audioStream.on('end', resolve);
+        audioStream.on('error', reject);
       });
-
-      if (response.ok) {
-        const audioBuffer = await response.arrayBuffer();
-        return new NextResponse(audioBuffer, {
-          status: 200,
-          headers: {
-            'Content-Type': 'audio/mpeg',
-            'Cache-Control': 'no-cache',
-          },
-        });
-      }
+      audioChunks.push(Buffer.concat(chunkBuffers));
     }
 
-    // No TTS key available — return 204 to signal use browser TTS
-    return NextResponse.json({ fallback: true, message: 'No TTS key configured, use browser synthesis' }, { status: 204 });
+    const fullAudio = Buffer.concat(audioChunks);
+
+    return new NextResponse(fullAudio, {
+      status: 200,
+      headers: {
+        'Content-Type': 'audio/mpeg',
+        'Cache-Control': 'public, max-age=3600',
+        'Content-Length': String(fullAudio.length),
+      },
+    });
   } catch (err) {
-    console.error('[TTS route error]', err);
-    return NextResponse.json({ error: 'TTS failed' }, { status: 500 });
+    console.error('[TTS] Microsoft Edge TTS error:', err);
+    // Graceful degradation — client falls back to browser speech synthesis
+    return NextResponse.json({ fallback: true }, { status: 204 });
   }
 }
