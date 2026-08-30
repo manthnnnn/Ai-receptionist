@@ -132,7 +132,7 @@ async function runTests() {
   try {
     const fs = await import('fs');
     const path = await import('path');
-    const sqlPath = path.resolve(process.cwd(), 'supabase/migrations/03_atomic_booking.sql');
+    const sqlPath = path.resolve(process.cwd(), 'supabase/migrations/20240830000003_atomic_booking.sql');
     const sqlContent = fs.readFileSync(sqlPath, 'utf8');
 
     assert(sqlContent.includes('pg_advisory_xact_lock'), 'PostgreSQL Stored Proc: Uses pg_advisory_xact_lock for concurrency locking');
