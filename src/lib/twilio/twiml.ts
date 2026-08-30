@@ -4,15 +4,15 @@ export function buildInboundGreetingTwiML(
   gatherActionUrl: string = '/api/twilio/gather',
   statusCallbackUrl: string = '/api/twilio/status'
 ): string {
-  const greetingText = customGreeting || `Hello! Thank you for calling ${clinicName}. How can I assist you with your appointment or visit today?`;
+  const greetingText = customGreeting || `Hello! Thank you for calling ${clinicName}. My name is Maya, your AI receptionist. How can I help you today?`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="Polly.Aditi" language="en-IN">${escapeXml(greetingText)}</Say>
-    <Gather input="speech" action="${gatherActionUrl}" method="POST" speechTimeout="auto" language="en-IN">
+    <Gather input="speech" action="${gatherActionUrl}" method="POST" speechTimeout="auto" language="en-IN" hints="appointment, doctor, fee, root canal, timing, parking, Dr Verma, Dr Kulkarni, Dr Mehta">
         <Say voice="Polly.Aditi" language="en-IN">Please go ahead, I am listening.</Say>
     </Gather>
-    <Say voice="Polly.Aditi" language="en-IN">We did not receive any response. Please call back anytime. Goodbye!</Say>
+    <Say voice="Polly.Aditi" language="en-IN">I could not hear your response. Please call us back anytime. Have a wonderful day!</Say>
     <Hangup/>
 </Response>`;
 }
@@ -33,8 +33,8 @@ export function buildSpeechResponseTwiML(
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say voice="Polly.Aditi" language="en-IN">${escapeXml(replyText)}</Say>
-    <Gather input="speech" action="${gatherActionUrl}" method="POST" speechTimeout="auto" language="en-IN"/>
-    <Say voice="Polly.Aditi" language="en-IN">Thank you for calling. Have a great day!</Say>
+    <Gather input="speech" action="${gatherActionUrl}" method="POST" speechTimeout="auto" language="en-IN" hints="appointment, book, fee, cancel, reschedule, Dr Verma, Dr Kulkarni, Dr Mehta"/>
+    <Say voice="Polly.Aditi" language="en-IN">Thank you for calling our clinic. Have a wonderful day!</Say>
     <Hangup/>
 </Response>`;
 }
