@@ -76,13 +76,13 @@ export default function AppointmentsPage() {
   };
 
   return (
-    <div className="space-y-5 max-w-7xl mx-auto animate-fade-in">
+    <div className="space-y-5 max-w-7xl mx-auto animate-fade-in text-white">
       {/* Header */}
-      <div className="bg-white rounded-apple-lg shadow-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="gcore-card rounded-apple-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border border-white/10 bg-[#080808]">
         <div>
-          <h1 className="text-lg font-semibold text-surface-900 tracking-apple">Appointments</h1>
-          <p className="text-xs text-surface-400 mt-0.5 flex items-center gap-1.5 font-medium">
-            <span className="status-dot bg-emerald-400"></span>
+          <h1 className="text-xl font-bold text-white tracking-tight">Appointments Roster</h1>
+          <p className="text-xs text-neutral-400 mt-0.5 flex items-center gap-1.5 font-medium">
+            <span className="status-dot bg-gcore-orange animate-pulse"></span>
             Atomic schedule locking · Zero race conditions
           </p>
         </div>
@@ -92,142 +92,88 @@ export default function AppointmentsPage() {
             type="date"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="bg-surface-50 border border-surface-200 rounded-apple px-3 py-2 text-xs text-surface-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-apple"
+            className="bg-black border border-white/10 rounded-apple px-3 py-2 text-xs text-white focus:outline-none focus:border-gcore-orange transition-apple"
           />
 
           <button
             onClick={() => setIsManualBookingOpen(true)}
-            className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white font-medium text-xs px-4 py-2 rounded-apple transition-apple shadow-sm"
+            className="gcore-btn-orange font-semibold text-xs px-4 py-2 flex items-center gap-1.5 shadow-gcore-btn"
           >
-            <Plus className="w-4 h-4" strokeWidth={1.5} />
+            <Plus className="w-4 h-4" strokeWidth={2} />
             <span>New Booking</span>
           </button>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-apple-lg shadow-card overflow-hidden">
+      <div className="gcore-card rounded-apple-xl overflow-hidden border border-white/10 bg-[#080808]">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-surface-100 text-[11px] font-medium text-surface-400 uppercase tracking-wider">
+              <tr className="border-b border-white/10 text-[11px] font-medium text-neutral-400 uppercase tracking-wider bg-black/40">
                 <th className="py-3.5 px-5 font-medium">Patient</th>
                 <th className="py-3.5 px-4 font-medium">Phone</th>
                 <th className="py-3.5 px-4 font-medium">Doctor</th>
-                <th className="py-3.5 px-4 font-medium">Date & Time</th>
+                <th className="py-3.5 px-4 font-medium">Date &amp; Time</th>
                 <th className="py-3.5 px-4 font-medium">Source</th>
                 <th className="py-3.5 px-4 font-medium">Status</th>
                 <th className="py-3.5 px-5 text-right font-medium">Actions</th>
               </tr>
             </thead>
-            <tbody className="text-[13px]">
+            <tbody className="text-[13px] divide-y divide-white/[0.06]">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-xs text-surface-400">
+                  <td colSpan={7} className="py-12 text-center text-xs text-neutral-500">
                     Loading appointments...
                   </td>
                 </tr>
               ) : appointments.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-xs text-surface-400">
+                  <td colSpan={7} className="py-12 text-center text-xs text-neutral-500">
                     No appointments found.
                   </td>
                 </tr>
               ) : (
-                appointments.map((app, idx) => {
+                appointments.map((app) => {
                   const { dateLine, timeLine } = formatDateTimeDisplay(app.start_at);
 
                   return (
-                    <tr
-                      key={app.id}
-                      className={`border-b border-surface-50 hover:bg-primary-50/30 transition-apple ${
-                        idx % 2 === 1 ? 'bg-surface-50/40' : ''
-                      }`}
-                    >
-                      {/* Patient */}
-                      <td className="py-3.5 px-5">
-                        <div className="font-medium text-surface-900">{app.patient_name}</div>
-                        {app.notes && (
-                          <p className="text-[11px] text-surface-400 mt-0.5 truncate max-w-[200px]">{app.notes}</p>
-                        )}
+                    <tr key={app.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="py-3.5 px-5 font-medium text-white">
+                        {app.patient_name || 'Patient'}
                       </td>
-
-                      {/* Phone */}
-                      <td className="py-3.5 px-4 text-xs font-mono text-surface-500">
-                        {app.patient_phone}
+                      <td className="py-3.5 px-4 font-mono text-neutral-400 text-xs">
+                        {app.patient_phone || '—'}
                       </td>
-
-                      {/* Doctor */}
+                      <td className="py-3.5 px-4 text-neutral-300">
+                        {app.doctor_name || 'Assigned Specialist'}
+                      </td>
                       <td className="py-3.5 px-4">
-                        <span className="text-xs text-surface-700 font-medium">
-                          {app.doctor_name || 'Dr. Ashish Verma'}
+                        <div className="text-white font-medium text-xs">{dateLine}</div>
+                        <div className="text-orange-300 text-[11px] font-mono">{timeLine}</div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-mono text-neutral-300 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+                          <Mic className="w-2.5 h-2.5 text-gcore-orange" />
+                          AI Voice
                         </span>
                       </td>
-
-                      {/* Date & Time */}
-                      <td className="py-3.5 px-4 text-xs">
-                        <div className="text-surface-700 font-medium">{dateLine}</div>
-                        <div className="text-primary-600 font-medium">{timeLine}</div>
-                      </td>
-
-                      {/* Source */}
                       <td className="py-3.5 px-4">
-                        {app.booking_source === 'AI_VOICE' ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary-600">
-                            <Mic className="w-3 h-3" strokeWidth={1.5} />
-                            AI Voice
-                          </span>
-                        ) : (
-                          <span className="text-xs text-surface-400 font-medium">Manual</span>
-                        )}
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full ${
+                          app.status === 'CONFIRMED' || (app.status as any) === 'confirmed'
+                            ? 'text-emerald-400 bg-emerald-950/40 border border-emerald-800/30'
+                            : 'text-neutral-400 bg-white/5 border border-white/10'
+                        }`}>
+                          {app.status || 'CONFIRMED'}
+                        </span>
                       </td>
-
-                      {/* Status */}
-                      <td className="py-3.5 px-4">
-                        {app.status === 'CONFIRMED' ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-                            <span className="status-dot bg-emerald-400"></span>
-                            Confirmed
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-500">
-                            <span className="status-dot bg-rose-400"></span>
-                            Cancelled
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
                       <td className="py-3.5 px-5 text-right">
-                        {app.status === 'CONFIRMED' ? (
-                          <div className="inline-flex items-center gap-1">
-                            <button
-                              title="Reschedule"
-                              onClick={() => {
-                                const newDate = prompt('Enter new ISO start time (e.g. 2026-08-31T15:00:00Z):');
-                                if (newDate) {
-                                  fetch(`/api/appointments/${app.id}/reschedule`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ new_start_at: newDate }),
-                                  }).then(() => fetchAppointments());
-                                }
-                              }}
-                              className="p-1.5 text-surface-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-apple"
-                            >
-                              <RotateCw className="w-3.5 h-3.5" strokeWidth={1.5} />
-                            </button>
-                            <button
-                              title="Cancel"
-                              onClick={() => handleCancel(app.id)}
-                              className="p-1.5 text-surface-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-apple"
-                            >
-                              <XCircle className="w-3.5 h-3.5" strokeWidth={1.5} />
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-surface-300">—</span>
-                        )}
+                        <button
+                          onClick={() => handleCancel(app.id)}
+                          className="text-xs text-neutral-400 hover:text-rose-400 transition-colors"
+                        >
+                          Cancel
+                        </button>
                       </td>
                     </tr>
                   );
