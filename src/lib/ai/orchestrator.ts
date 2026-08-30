@@ -1,6 +1,7 @@
 import { clinicTools } from './tools';
 import { localStore } from '@/lib/store/local-store';
 import { buildSystemPrompt } from './prompts';
+import { parseNaturalDateTime, formatSlotForSpeech } from './date-parser';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -387,7 +388,7 @@ export async function processReceptionistTurn(
     return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
   }
 
-  // H. Check Doctor Availability Inquiries
+  // H. Check Doctor Availability Inquiries (with NL date extraction)
   if (
     text.includes('check') ||
     text.includes('available') ||
@@ -396,11 +397,19 @@ export async function processReceptionistTurn(
     text.includes('tomorrow') ||
     text.includes('उद्या') ||
     text.includes('कल') ||
-    text.includes('वेळ मिळेल का')
+    text.includes('वेळ मिळेल का') ||
+    text.includes('वेळ आहे का')
   ) {
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + 1);
-    const targetDateStr = targetDate.toISOString().split('T')[0];
+    // Use NL date parser to extract specific date from utterance
+    const parsed = parseNaturalDateTime(rawText, lang);
+    let targetDateStr: string;
+    if (parsed) {
+      targetDateStr = parsed.date;
+    } else {
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() + 1);
+      targetDateStr = targetDate.toISOString().split('T')[0];
+    }
 
     const avail = await clinicTools.check_availability({
       clinic_id: clinicId,
@@ -408,11 +417,13 @@ export async function processReceptionistTurn(
     });
 
     const sampleSlots = avail.available_slots?.slice(0, 3).join(', ') || '10:00 AM, 11:30 AM, 4:30 PM';
-    let reply = `Dr. Ashish Verma and Dr. Rohan Mehta have open slots tomorrow at ${sampleSlots}. Which time would you prefer to reserve?`;
+    const dateLabel = parsed ? formatSlotForSpeech(parsed.iso, lang) : (lang === 'mr' ? 'उद्या' : lang === 'hi' ? 'कल' : 'tomorrow');
+
+    let reply = `Slots available on ${dateLabel}: ${sampleSlots}. Which time would you prefer?`;
     if (lang === 'mr') {
-      reply = `डॉ. आशिष वर्मा आणि डॉ. रोहन मेहता यांच्याकडे उद्या सकाळी १०:००, ११:३० आणि दुपारी ४:३० वाजताच्या वेळा उपलब्ध आहेत. आपण कोणती वेळ निवडू इच्छिता?`;
+      reply = `${dateLabel} रोजी उपलब्ध वेळा: ${sampleSlots}. आपण कोणती वेळ निवडू इच्छिता?`;
     } else if (lang === 'hi') {
-      reply = `डॉ. आशीष वर्मा और डॉ. रोहन मेहता के पास कल सुबह 10:00, 11:30 और शाम 4:30 बजे के स्लॉट उपलब्ध हैं। आप कौन सा समय चुनना चाहेंगे?`;
+      reply = `${dateLabel} को उपलब्ध स्लॉट: ${sampleSlots}. आप कौन सा समय चुनना चाहेंगे?`;
     }
     return {
       reply,
@@ -424,7 +435,7 @@ export async function processReceptionistTurn(
     };
   }
 
-  // I. Appointment Booking
+  // I. Appointment Booking (with NL slot extraction + collision negotiation)
   if (
     text.includes('book') ||
     text.includes('confirm') ||
@@ -435,25 +446,61 @@ export async function processReceptionistTurn(
     text.includes('घ्यायची आहे') ||
     text.includes('पाहिजे')
   ) {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    // ── NL Slot Extraction ─────────────────────────────────────
+    const parsed = parseNaturalDateTime(rawText, lang);
+    let targetDateStr: string;
+    let slotTime: string;
+    let slotFormatted: string;
 
-    let slotTime = '16:30';
-    let slotFormatted = '04:30 PM';
-    if (text.includes('10') || text.includes('१०')) { slotTime = '10:00'; slotFormatted = '10:00 AM'; }
-    if (text.includes('11') || text.includes('११')) { slotTime = '11:30'; slotFormatted = '11:30 AM'; }
-    if (text.includes('2') || text.includes('14') || text.includes('२')) { slotTime = '14:00'; slotFormatted = '02:00 PM'; }
-    if (text.includes('4') || text.includes('४')) { slotTime = '16:30'; slotFormatted = '04:30 PM'; }
+    if (parsed) {
+      // Extracted from natural language (e.g. "उद्या संध्याकाळी ४ वाजता")
+      targetDateStr = parsed.date;
+      slotTime = parsed.time;
+      slotFormatted = formatSlotForSpeech(parsed.iso, lang);
+    } else {
+      // Fallback: manual digit matching
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      targetDateStr = tomorrow.toISOString().split('T')[0];
+
+      slotTime = '16:30';
+      slotFormatted = '04:30 PM';
+      if (text.includes('10') || text.includes('१०')) { slotTime = '10:00'; slotFormatted = '10:00 AM'; }
+      if (text.includes('11') || text.includes('११')) { slotTime = '11:30'; slotFormatted = '11:30 AM'; }
+      if (text.includes('2') || text.includes('14') || text.includes('२')) { slotTime = '14:00'; slotFormatted = '02:00 PM'; }
+      if (text.includes('4') || text.includes('४')) { slotTime = '16:30'; slotFormatted = '04:30 PM'; }
+    }
 
     const bookingRes = await clinicTools.book_appointment({
       clinic_id: clinicId,
       doctor_id: '11111111-1111-1111-1111-111111111111',
       patient_name: 'Patient (Caller)',
       patient_phone: callerPhone,
-      start_at: `${tomorrowStr}T${slotTime}:00Z`,
-      notes: `Automated booking via AI Voice Receptionist [${lang.toUpperCase()}]`,
+      start_at: `${targetDateStr}T${slotTime}:00Z`,
+      notes: `Automated booking via AI Voice Receptionist [${lang.toUpperCase()}]${parsed ? ` | NL-extracted: "${parsed.parsed_day} ${parsed.parsed_time}" (confidence: ${parsed.confidence.toFixed(2)})` : ''}`,
     });
+
+    // ── Handle Collision: Offer Alternative Slots ────────────────
+    if (!bookingRes.success && (bookingRes as any).alternative_slots) {
+      const alts = (bookingRes as any).alternative_slots as Array<{ time_formatted: string; time_iso: string }>;
+      const altList = alts.map((a) => a.time_formatted).join(', ');
+
+      let reply = `Sorry, the ${slotFormatted} slot is already taken. How about one of these nearby times: ${altList}?`;
+      if (lang === 'mr') {
+        reply = `माफ करा, ${slotFormatted} ही वेळ आधीच भरली आहे. या जवळच्या वेळांपैकी एक निवडा: ${altList}?`;
+      } else if (lang === 'hi') {
+        reply = `क्षमा करें, ${slotFormatted} का स्लॉट पहले से बुक है। इन नज़दीकी समयों में से कोई चुनें: ${altList}?`;
+      }
+
+      return {
+        reply,
+        language: lang,
+        tool_called: 'book_appointment',
+        tool_result: bookingRes,
+        latency_ms: Date.now() - startTime,
+        call_outcome: 'FAQ_ANSWERED',
+      };
+    }
 
     localStore.logCall({
       clinic_id: clinicId,
@@ -464,11 +511,11 @@ export async function processReceptionistTurn(
       appointment_id: bookingRes.appointment?.id,
     });
 
-    let reply = `Your appointment with Dr. Ashish Verma has been confirmed for tomorrow at ${slotFormatted}. A confirmation SMS has been dispatched.`;
+    let reply = `Your appointment with Dr. Ashish Verma has been confirmed for ${slotFormatted}. A confirmation SMS has been dispatched.`;
     if (lang === 'mr') {
-      reply = `डॉ. आशिष वर्मा यांच्यासोबत आपली भेट उद्या ${slotFormatted} वाजता निश्चित झाली आहे. आपणास एसएमएस द्वारे कन्फर्मेशन पाठवले आहे.`;
+      reply = `डॉ. आशिष वर्मा यांच्यासोबत आपली भेट ${slotFormatted} वाजता निश्चित झाली आहे. आपणास एसएमएस द्वारे कन्फर्मेशन पाठवले आहे.`;
     } else if (lang === 'hi') {
-      reply = `डॉ. आशीष वर्मा के साथ आपकी अपॉइंटमेंट कल ${slotFormatted} बजे के लिए कन्फर्म कर दी गई है। आपको एसएमएस भेज दिया गया है।`;
+      reply = `डॉ. आशीष वर्मा के साथ आपकी अपॉइंटमेंट ${slotFormatted} बजे के लिए कन्फर्म कर दी गई है। आपको एसएमएस भेज दिया गया है।`;
     }
 
     return {

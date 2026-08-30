@@ -116,7 +116,7 @@ export const clinicTools = {
     };
   },
 
-  // 4. Book Appointment (Atomic)
+  // 4. Book Appointment (Atomic) — with alternative slot negotiation on collision
   book_appointment: async (args: unknown) => {
     const parsed = BookAppointmentSchema.parse(args);
     const doctor = localStore.getDoctorById(parsed.doctor_id);
@@ -135,6 +135,32 @@ export const clinicTools = {
       booking_source: 'AI_VOICE',
       notes: parsed.notes,
     });
+
+    // ── Alternative Slot Negotiation ──────────────────────────
+    // When the requested slot is already taken, find 2-3 nearby
+    // available slots and include them in the response so the AI
+    // can offer alternatives to the patient.
+    if (!result.success && result.error_code === 'SLOT_ALREADY_BOOKED') {
+      const targetDateStr = parsed.start_at.split('T')[0]; // "2026-08-31"
+      const allSlots = calculateAvailableSlots(parsed.clinic_id, parsed.doctor_id, targetDateStr);
+
+      // Sort slots by proximity to the originally requested time
+      const requestedTime = startDate.getTime();
+      const sortedSlots = allSlots
+        .map((s) => ({ ...s, distance: Math.abs(new Date(s.start_iso).getTime() - requestedTime) }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 3);
+
+      return {
+        ...result,
+        message: `The ${startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} slot is already booked. Here are nearby available times:`,
+        alternative_slots: sortedSlots.map((s) => ({
+          time_formatted: s.time_formatted,
+          start_iso: s.start_iso,
+        })),
+        alternative_count: sortedSlots.length,
+      };
+    }
 
     return result;
   },
