@@ -104,37 +104,30 @@ export function BookingModal() {
 
   if (!isManualBookingOpen) return null;
 
-  const inputClass =
-    'w-full bg-[#0d0d0d] border border-white/10 rounded-xl px-4 py-2.5 text-[13px] text-white ' +
-    'focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 ' +
-    'transition-all placeholder:text-white/20 appearance-none';
-
-  const labelClass = 'block text-[11px] font-semibold text-white/50 uppercase tracking-widest mb-1.5';
+  const inputClass = 'gcore-input';
+  const labelClass = 'block text-[11px] font-semibold uppercase tracking-widest mb-1.5';
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
       <div
-        className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-scale-in flex flex-col"
-        style={{
-          background: 'linear-gradient(145deg, #111111 0%, #0a0a0a 100%)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          maxHeight: '92vh',
-        }}
+        className="gcore-card w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-scale-in flex flex-col"
+        style={{ maxHeight: '92vh' }}
       >
         {/* ── Header ── */}
-        <div className="px-6 py-4 border-b border-white/[0.07] flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-4 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-orange-500/15 border border-orange-500/25 flex items-center justify-center">
               <Calendar className="w-4 h-4 text-orange-400" strokeWidth={2} />
             </div>
             <div>
-              <h3 className="font-bold text-white text-[15px] tracking-tight">New Appointment</h3>
-              <p className="text-[11px] text-white/35">Fill in the details below to confirm</p>
+              <h3 className="font-bold text-[15px] tracking-tight" style={{ color: 'var(--text-primary)' }}>New Appointment</h3>
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Fill in the details below to confirm</p>
             </div>
           </div>
           <button
             onClick={() => setIsManualBookingOpen(false)}
-            className="text-white/30 hover:text-white/80 p-1.5 rounded-lg hover:bg-white/5 transition-all"
+            className="p-1.5 rounded-lg transition-all hover:bg-black/5"
+            style={{ color: 'var(--text-muted)' }}
           >
             <X className="w-5 h-5" strokeWidth={1.5} />
           </button>
@@ -214,15 +207,20 @@ export function BookingModal() {
                     className={`px-3.5 py-1.5 rounded-xl text-[12px] font-semibold border transition-all ${
                       selectedSlot === slot.time_24h
                         ? 'bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/20'
-                        : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/60 hover:text-white border-white/10 hover:border-white/20'
+                        : 'hover:border-orange-500/30'
                     }`}
+                  style={selectedSlot !== slot.time_24h ? {
+                    background: 'var(--surface-2)',
+                    color: 'var(--text-secondary)',
+                    borderColor: 'var(--border)',
+                  } : undefined}
                   >
                     {slot.time_formatted}
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="text-[12px] text-white/30 bg-white/[0.03] px-4 py-3.5 rounded-xl border border-dashed border-white/10 text-center">
+              <div className="text-[12px] px-4 py-3.5 rounded-xl border border-dashed text-center" style={{ color: 'var(--text-muted)', borderColor: 'var(--border)', background: 'var(--surface-2)' }}>
                 No available slots on this date
               </div>
             )}
@@ -274,11 +272,12 @@ export function BookingModal() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/[0.07]">
+          <div className="flex items-center justify-end gap-3 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
             <button
               type="button"
               onClick={() => setIsManualBookingOpen(false)}
-              className="px-5 py-2.5 rounded-xl text-[12px] font-semibold text-white/40 hover:text-white/70 hover:bg-white/5 transition-all"
+              className="px-5 py-2.5 rounded-xl text-[12px] font-semibold transition-all hover:bg-black/5"
+              style={{ color: 'var(--text-muted)' }}
             >
               Cancel
             </button>

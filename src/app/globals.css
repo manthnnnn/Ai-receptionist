@@ -2,199 +2,253 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ══════════════════════════════════════════════════════════════
+   PRODUCTION TOKEN SYSTEM — Dark & Light Mode
+   All colors flow from CSS variables. Components write classes once.
+   ══════════════════════════════════════════════════════════════ */
+
 @layer base {
+
+  /* ── Dark Mode (default) ── */
   :root {
-    --background: #000000;
-    --foreground: #FFFFFF;
-    --gcore-orange: #FF5500;
+    --bg:          #000000;
+    --surface:     #0a0a0a;
+    --surface-2:   #111111;
+    --surface-3:   #181818;
+    --border:      rgba(255,255,255,0.08);
+    --border-hover:rgba(255,85,0,0.40);
+    --text-primary:#FFFFFF;
+    --text-secondary:#94a3b8;
+    --text-muted:  #4b5563;
+    --input-bg:    #0d0d0d;
+    --input-border:rgba(255,255,255,0.10);
+    --input-text:  #FFFFFF;
+    --input-placeholder: rgba(255,255,255,0.22);
+    --header-bg:   #000000;
+    --sidebar-bg:  #000000;
+    --table-head:  rgba(0,0,0,0.45);
+    --table-row-hover: rgba(255,255,255,0.02);
+    --gcore-orange:#FF5500;
     --gcore-amber: #FF7700;
   }
 
+  /* ── Light Mode — applied via <html class="light"> ── */
   html.light {
-    --background: #F8F9FA;
-    --foreground: #0F172A;
+    --bg:          #f0f2f5;
+    --surface:     #ffffff;
+    --surface-2:   #f8fafc;
+    --surface-3:   #f1f5f9;
+    --border:      rgba(0,0,0,0.08);
+    --border-hover:rgba(255,85,0,0.35);
+    --text-primary:#0f172a;
+    --text-secondary:#475569;
+    --text-muted:  #94a3b8;
+    --input-bg:    #f8fafc;
+    --input-border:rgba(0,0,0,0.10);
+    --input-text:  #0f172a;
+    --input-placeholder: rgba(15,23,42,0.30);
+    --header-bg:   #ffffff;
+    --sidebar-bg:  #ffffff;
+    --table-head:  #f8fafc;
+    --table-row-hover: rgba(0,0,0,0.02);
   }
 
   body {
-    color: var(--foreground);
-    background: var(--background);
+    color: var(--text-primary);
+    background: var(--bg);
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
+
+  input, select, textarea { color-scheme: dark; }
+  html.light input,
+  html.light select,
+  html.light textarea { color-scheme: light; }
 }
 
-/* ─── Canvas & Micro Isometric Grid ─── */
+/* ══════════════════════════════════════════════════════════════
+   CANVAS / PAGE BG
+   ══════════════════════════════════════════════════════════════ */
 .bg-gcore-canvas {
-  background-color: #000000;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 44px 44px;
 }
-
 html.light .bg-gcore-canvas {
-  background-color: #F8F9FA;
-  background-image: 
-    linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px);
 }
 
-/* ─── Ambient Warm Flare ─── */
+/* ══════════════════════════════════════════════════════════════
+   AMBIENT GLOW
+   ══════════════════════════════════════════════════════════════ */
 .gcore-electric-ray {
   position: absolute;
-  top: -120px;
-  right: -100px;
-  width: 750px;
-  height: 650px;
-  background: radial-gradient(circle, rgba(255, 85, 0, 0.22) 0%, rgba(255, 120, 0, 0.08) 35%, transparent 70%);
+  top: -120px; right: -100px;
+  width: 750px; height: 650px;
+  background: radial-gradient(circle, rgba(255,85,0,0.22) 0%, rgba(255,120,0,0.08) 35%, transparent 70%);
   filter: blur(65px);
-  pointer-events: none;
-  z-index: 0;
+  pointer-events: none; z-index: 0;
   transform: rotate(-15deg);
 }
-
 html.light .gcore-electric-ray {
-  background: radial-gradient(circle, rgba(255, 85, 0, 0.12) 0%, rgba(255, 120, 0, 0.04) 35%, transparent 70%);
+  background: radial-gradient(circle, rgba(255,85,0,0.10) 0%, rgba(255,120,0,0.03) 35%, transparent 70%);
   filter: blur(80px);
 }
 
-/* ─── Cards System (Dark & Light) ─── */
+/* ══════════════════════════════════════════════════════════════
+   CARD SYSTEM
+   ══════════════════════════════════════════════════════════════ */
 .gcore-card {
-  background: rgba(10, 10, 10, 0.95);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.04);
+  transition: all 0.22s cubic-bezier(0.16,1,0.3,1);
 }
-
 .gcore-card:hover {
-  border-color: rgba(255, 85, 0, 0.4);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.98), 0 0 30px rgba(255, 85, 0, 0.15);
-  transform: translateY(-2px);
+  border-color: var(--border-hover);
+  box-shadow: 0 10px 32px rgba(0,0,0,0.85), 0 0 22px rgba(255,85,0,0.10);
+  transform: translateY(-1px);
 }
-
 html.light .gcore-card {
-  background: #FFFFFF;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.055), 0 1px 3px rgba(0,0,0,0.035);
 }
-
 html.light .gcore-card:hover {
-  border-color: rgba(255, 85, 0, 0.4);
-  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.08), 0 0 20px rgba(255, 85, 0, 0.12);
-  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.09), 0 0 16px rgba(255,85,0,0.09);
 }
 
-/* ─── Sunset Orange Gradient Pill Button ─── */
+/* ══════════════════════════════════════════════════════════════
+   BUTTONS
+   ══════════════════════════════════════════════════════════════ */
 .gcore-btn-orange {
-  background: linear-gradient(135deg, #FF6B00 0%, #FF4400 50%, #E03500 100%);
+  background: linear-gradient(135deg, #FF6B00 0%, #FF4400 55%, #E03500 100%);
   color: #FFFFFF;
   font-weight: 600;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 25px rgba(255, 85, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 0 22px rgba(255,85,0,0.38), inset 0 1px 0 rgba(255,255,255,0.26);
+  transition: all 0.22s cubic-bezier(0.16,1,0.3,1);
 }
-
 .gcore-btn-orange:hover {
-  background: linear-gradient(135deg, #FF7B00 0%, #FF5500 50%, #F04000 100%);
-  box-shadow: 0 0 38px rgba(255, 85, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #FF7B00 0%, #FF5500 55%, #F04000 100%);
+  box-shadow: 0 0 34px rgba(255,85,0,0.58), inset 0 1px 0 rgba(255,255,255,0.36);
   transform: translateY(-1px) scale(1.02);
 }
+.gcore-btn-orange:active { transform: scale(0.98); }
 
-.gcore-btn-orange:active {
-  transform: scale(0.98);
-}
-
-/* ─── Neutral Pill Button ─── */
 .gcore-btn-dark {
-  background: #111111;
-  color: #FFFFFF;
+  background: var(--surface-2);
+  color: var(--text-primary);
   font-weight: 500;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(16px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: all 0.22s cubic-bezier(0.16,1,0.3,1);
 }
-
 .gcore-btn-dark:hover {
-  background: #1C1C1C;
-  border-color: rgba(255, 85, 0, 0.4);
-  color: #FFFFFF;
+  border-color: var(--border-hover);
+  background: var(--surface-3);
   transform: translateY(-1px);
 }
+html.light .gcore-btn-dark { box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
 
-html.light .gcore-btn-dark {
-  background: #F1F5F9;
-  color: #0F172A;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+/* ══════════════════════════════════════════════════════════════
+   FORM INPUTS
+   ══════════════════════════════════════════════════════════════ */
+.gcore-input {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--input-text);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  outline: none;
+  width: 100%;
+  appearance: none;
+}
+.gcore-input::placeholder { color: var(--input-placeholder); }
+.gcore-input:focus {
+  border-color: rgba(255,85,0,0.55);
+  box-shadow: 0 0 0 3px rgba(255,85,0,0.10);
 }
 
-html.light .gcore-btn-dark:hover {
-  background: #E2E8F0;
-  border-color: rgba(255, 85, 0, 0.4);
-  color: #000000;
+/* ══════════════════════════════════════════════════════════════
+   TABLE SYSTEM
+   ══════════════════════════════════════════════════════════════ */
+.gcore-table thead tr {
+  background: var(--table-head);
+  border-bottom: 1px solid var(--border);
+}
+.gcore-table thead th {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 13px 20px;
+}
+.gcore-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s ease;
+}
+.gcore-table tbody tr:last-child { border-bottom: none; }
+.gcore-table tbody tr:hover { background: var(--table-row-hover); }
+.gcore-table tbody td {
+  padding: 13px 20px;
+  color: var(--text-primary);
+  font-size: 13px;
 }
 
-/* ─── Badges & Chips ─── */
+/* ══════════════════════════════════════════════════════════════
+   BADGES
+   ══════════════════════════════════════════════════════════════ */
 .gcore-badge {
-  background: rgba(18, 18, 18, 0.9);
-  border: 1px solid rgba(255, 85, 0, 0.3);
-  color: #FFB088;
-  box-shadow: 0 0 16px rgba(255, 85, 0, 0.12);
+  background: rgba(255,85,0,0.10);
+  border: 1px solid rgba(255,85,0,0.28);
+  color: #FF8040;
 }
-
 html.light .gcore-badge {
-  background: rgba(255, 85, 0, 0.08);
-  border: 1px solid rgba(255, 85, 0, 0.25);
-  color: #EA580C;
-  box-shadow: none;
+  background: rgba(255,85,0,0.07);
+  border: 1px solid rgba(255,85,0,0.22);
+  color: #C94400;
 }
 
-/* ─── Central AI Hardware Chip ─── */
+/* ══════════════════════════════════════════════════════════════
+   AI CHIP
+   ══════════════════════════════════════════════════════════════ */
 .gcore-ai-chip {
   background: linear-gradient(145deg, #181818 0%, #080808 100%);
-  border: 1.5px solid rgba(255, 85, 0, 0.55);
-  box-shadow: 
-    0 0 45px rgba(255, 85, 0, 0.4),
-    inset 0 0 25px rgba(255, 85, 0, 0.18);
+  border: 1.5px solid rgba(255,85,0,0.55);
+  box-shadow: 0 0 45px rgba(255,85,0,0.35), inset 0 0 25px rgba(255,85,0,0.15);
 }
-
 html.light .gcore-ai-chip {
-  background: linear-gradient(145deg, #FFFFFF 0%, #F8FAFC 100%);
-  border: 1.5px solid rgba(255, 85, 0, 0.6);
-  box-shadow: 
-    0 8px 30px rgba(255, 85, 0, 0.25),
-    inset 0 0 15px rgba(255, 85, 0, 0.08);
+  background: linear-gradient(145deg, #FFFFFF 0%, #f8fafc 100%);
+  border: 1.5px solid rgba(255,85,0,0.55);
+  box-shadow: 0 8px 30px rgba(255,85,0,0.18), inset 0 0 15px rgba(255,85,0,0.06);
 }
 
-/* ─── Status Indicator Dots ─── */
+/* ══════════════════════════════════════════════════════════════
+   STATUS / UTILITY
+   ══════════════════════════════════════════════════════════════ */
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px; height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
+  display: inline-block;
 }
 
-/* ─── Minimal Scrollbars ─── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(150, 150, 150, 0.25);
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 85, 0, 0.5);
-}
+.transition-apple { transition: all 0.22s cubic-bezier(0.16,1,0.3,1); }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.18); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,85,0,0.45); }
+
+

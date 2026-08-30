@@ -3,20 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import { useClinic } from '@/components/layout/clinic-context';
 import { Appointment } from '@/types';
-import { 
-  Plus, 
-  Calendar, 
-  Phone, 
-  User, 
-  RotateCw, 
-  XCircle, 
-  Mic, 
-  ShieldCheck, 
-  CheckCircle2 
+import {
+  Plus,
+  Calendar,
+  Mic,
+  ShieldCheck,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 
 export default function AppointmentsPage() {
-  const { activeClinicId, activeClinic, setIsManualBookingOpen } = useClinic();
+  const { activeClinicId, setIsManualBookingOpen } = useClinic();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [dateFilter, setDateFilter] = useState('');
   const [loading, setLoading] = useState(true);
@@ -24,65 +21,50 @@ export default function AppointmentsPage() {
   const fetchAppointments = () => {
     setLoading(true);
     let url = `/api/appointments?clinic_id=${activeClinicId}`;
-    if (dateFilter) {
-      url += `&date=${dateFilter}`;
-    }
-
+    if (dateFilter) url += `&date=${dateFilter}`;
     fetch(url)
       .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setAppointments(data.appointments || []);
-        }
-      })
-      .catch((err) => console.error(err))
+      .then((data) => { if (data.success) setAppointments(data.appointments || []); })
+      .catch(console.error)
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    fetchAppointments();
-  }, [activeClinicId, dateFilter]);
+  useEffect(() => { fetchAppointments(); }, [activeClinicId, dateFilter]);
 
   const handleCancel = async (id: string) => {
-    if (!confirm('Are you sure you want to cancel this appointment?')) return;
+    if (!confirm('Cancel this appointment?')) return;
     try {
       const res = await fetch(`/api/appointments/${id}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: 'Cancelled by clinic admin' }),
       });
-      if (res.ok) {
-        fetchAppointments();
-      }
-    } catch (err) {
-      console.error(err);
-    }
+      if (res.ok) fetchAppointments();
+    } catch (err) { console.error(err); }
   };
 
-  const formatDateTimeDisplay = (isoStr: string) => {
+  const formatDT = (iso: string) => {
     try {
-      const d = new Date(isoStr);
-      const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
-      const day = d.getDate();
-      const month = d.toLocaleDateString('en-US', { month: 'short' });
-      const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
+      const d = new Date(iso);
       return {
-        dateLine: `${weekday}, ${day} ${month}`,
-        timeLine: time,
+        dateLine: d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }),
+        timeLine: d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
       };
-    } catch {
-      return { dateLine: isoStr, timeLine: '' };
-    }
+    } catch { return { dateLine: iso, timeLine: '' }; }
   };
 
   return (
-    <div className="space-y-5 max-w-7xl mx-auto animate-fade-in text-white">
-      {/* Header */}
-      <div className="gcore-card rounded-apple-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border border-white/10 bg-[#080808]">
+    <div className="space-y-5 max-w-7xl mx-auto animate-fade-in">
+      {/* ── Header Row ── */}
+      <div
+        className="gcore-card rounded-apple-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
+      >
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight">Appointments Roster</h1>
-          <p className="text-xs text-neutral-400 mt-0.5 flex items-center gap-1.5 font-medium">
-            <span className="status-dot bg-gcore-orange animate-pulse"></span>
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            Appointments Roster
+          </h1>
+          <p className="text-xs mt-0.5 flex items-center gap-1.5 font-medium" style={{ color: 'var(--text-secondary)' }}>
+            <span className="status-dot bg-gcore-orange animate-pulse" />
             Atomic schedule locking · Zero race conditions
           </p>
         </div>
@@ -92,9 +74,8 @@ export default function AppointmentsPage() {
             type="date"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="bg-black border border-white/10 rounded-apple px-3 py-2 text-xs text-white focus:outline-none focus:border-gcore-orange transition-apple"
+            className="gcore-input !w-auto !rounded-apple text-xs px-3 py-2"
           />
-
           <button
             onClick={() => setIsManualBookingOpen(true)}
             className="gcore-btn-orange font-semibold text-xs px-4 py-2 flex items-center gap-1.5 shadow-gcore-btn"
@@ -105,73 +86,113 @@ export default function AppointmentsPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="gcore-card rounded-apple-xl overflow-hidden border border-white/10 bg-[#080808]">
+      {/* ── Table ── */}
+      <div className="gcore-card rounded-apple-xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse gcore-table">
             <thead>
-              <tr className="border-b border-white/10 text-[11px] font-medium text-neutral-400 uppercase tracking-wider bg-black/40">
-                <th className="py-3.5 px-5 font-medium">Patient</th>
-                <th className="py-3.5 px-4 font-medium">Phone</th>
-                <th className="py-3.5 px-4 font-medium">Doctor</th>
-                <th className="py-3.5 px-4 font-medium">Date &amp; Time</th>
-                <th className="py-3.5 px-4 font-medium">Source</th>
-                <th className="py-3.5 px-4 font-medium">Status</th>
-                <th className="py-3.5 px-5 text-right font-medium">Actions</th>
+              <tr>
+                <th>Patient</th>
+                <th>Phone</th>
+                <th>Doctor</th>
+                <th>Date &amp; Time</th>
+                <th>Source</th>
+                <th>Status</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="text-[13px] divide-y divide-white/[0.06]">
+            <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-xs text-neutral-500">
-                    Loading appointments...
+                  <td colSpan={7} className="py-14 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="w-3.5 h-3.5 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin" />
+                      Loading appointments...
+                    </span>
                   </td>
                 </tr>
               ) : appointments.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-xs text-neutral-500">
-                    No appointments found.
+                  <td colSpan={7} className="py-14 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+                    No appointments found for the selected filters.
                   </td>
                 </tr>
               ) : (
                 appointments.map((app) => {
-                  const { dateLine, timeLine } = formatDateTimeDisplay(app.start_at);
+                  const { dateLine, timeLine } = formatDT(app.start_at);
+                  const isConfirmed = (app.status || '').toLowerCase() === 'confirmed';
 
                   return (
-                    <tr key={app.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-3.5 px-5 font-medium text-white">
-                        {app.patient_name || 'Patient'}
+                    <tr key={app.id}>
+                      {/* Patient */}
+                      <td>
+                        <span className="font-semibold text-[13px]" style={{ color: 'var(--text-primary)' }}>
+                          {app.patient_name || 'Patient'}
+                        </span>
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-neutral-400 text-xs">
-                        {app.patient_phone || '—'}
+
+                      {/* Phone */}
+                      <td>
+                        <span className="font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>
+                          {app.patient_phone || '—'}
+                        </span>
                       </td>
-                      <td className="py-3.5 px-4 text-neutral-300">
-                        {app.doctor_name || 'Assigned Specialist'}
+
+                      {/* Doctor */}
+                      <td>
+                        <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                          {app.doctor_name || 'Assigned Specialist'}
+                        </span>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <div className="text-white font-medium text-xs">{dateLine}</div>
-                        <div className="text-orange-300 text-[11px] font-mono">{timeLine}</div>
+
+                      {/* Date & Time */}
+                      <td>
+                        <div className="font-medium text-xs" style={{ color: 'var(--text-primary)' }}>{dateLine}</div>
+                        <div className="text-orange-400 text-[11px] font-mono">{timeLine}</div>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-mono text-neutral-300 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+
+                      {/* Source */}
+                      <td>
+                        <span
+                          className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full border"
+                          style={{
+                            color: 'var(--text-secondary)',
+                            background: 'var(--surface-2)',
+                            borderColor: 'var(--border)',
+                          }}
+                        >
                           <Mic className="w-2.5 h-2.5 text-gcore-orange" />
                           AI Voice
                         </span>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full ${
-                          app.status === 'CONFIRMED' || (app.status as any) === 'confirmed'
-                            ? 'text-emerald-400 bg-emerald-950/40 border border-emerald-800/30'
-                            : 'text-neutral-400 bg-white/5 border border-white/10'
-                        }`}>
-                          {app.status || 'CONFIRMED'}
+
+                      {/* Status */}
+                      <td>
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${
+                            isConfirmed
+                              ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/25'
+                              : 'border'
+                          }`}
+                          style={!isConfirmed ? {
+                            color: 'var(--text-secondary)',
+                            background: 'var(--surface-2)',
+                            borderColor: 'var(--border)',
+                          } : undefined}
+                        >
+                          {isConfirmed && <CheckCircle2 className="w-3 h-3" strokeWidth={2} />}
+                          {(app.status || 'CONFIRMED').toUpperCase()}
                         </span>
                       </td>
-                      <td className="py-3.5 px-5 text-right">
+
+                      {/* Actions */}
+                      <td className="text-right">
                         <button
                           onClick={() => handleCancel(app.id)}
-                          className="text-xs text-neutral-400 hover:text-rose-400 transition-colors"
+                          className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg transition-apple hover:bg-rose-500/10 hover:text-rose-400"
+                          style={{ color: 'var(--text-muted)' }}
                         >
+                          <XCircle className="w-3.5 h-3.5" strokeWidth={1.8} />
                           Cancel
                         </button>
                       </td>
