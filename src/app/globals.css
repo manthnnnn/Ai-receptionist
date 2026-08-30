@@ -4,15 +4,15 @@
 
 @layer base {
   :root {
-    --background: #07080B;
+    --background: #000000;
     --foreground: #F8FAFC;
     --gcore-orange: #FF5500;
-    --gcore-amber: #FF8800;
+    --gcore-amber: #FF7700;
   }
 
   body {
     color: var(--foreground);
-    background: #07080B;
+    background: #000000;
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -20,24 +20,24 @@
   }
 }
 
-/* ─── Gcore Isometric Grid Canvas ─── */
+/* ─── Pure Obsidian Black Grid Canvas ─── */
 .bg-gcore-canvas {
-  background-color: #07080B;
+  background-color: #000000;
   background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
-/* ─── Top-Right Electric Amber Flare (Exact Gcore Light Ray) ─── */
+/* ─── Warm Amber Electric Lighting Ray (Top-Right Angle) ─── */
 .gcore-electric-ray {
   position: absolute;
   top: -120px;
   right: -100px;
-  width: 700px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(255, 85, 0, 0.28) 0%, rgba(255, 140, 0, 0.12) 35%, rgba(255, 180, 0, 0.03) 60%, transparent 80%);
-  filter: blur(60px);
+  width: 750px;
+  height: 650px;
+  background: radial-gradient(circle, rgba(255, 85, 0, 0.25) 0%, rgba(255, 120, 0, 0.1) 35%, rgba(255, 160, 0, 0.02) 60%, transparent 80%);
+  filter: blur(65px);
   pointer-events: none;
   z-index: 0;
   transform: rotate(-15deg);
@@ -45,46 +45,47 @@
 
 .gcore-electric-streak {
   position: absolute;
-  top: -50px;
-  right: 50px;
+  top: -60px;
+  right: 60px;
   width: 450px;
   height: 900px;
-  background: linear-gradient(135deg, rgba(255, 120, 0, 0.22) 0%, rgba(255, 85, 0, 0.08) 40%, transparent 70%);
-  filter: blur(40px);
+  background: linear-gradient(135deg, rgba(255, 110, 0, 0.18) 0%, rgba(255, 70, 0, 0.06) 40%, transparent 70%);
+  filter: blur(45px);
   transform: rotate(35deg);
   pointer-events: none;
   z-index: 0;
 }
 
-/* ─── Gcore Glowing Dark Glass Cards ─── */
+/* ─── Premium Matte Black Glass Cards ─── */
 .gcore-card {
-  background: rgba(14, 17, 23, 0.82);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  background: rgba(10, 12, 16, 0.92);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.05);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .gcore-card:hover {
-  border-color: rgba(255, 100, 0, 0.4);
-  box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.9), 0 0 25px rgba(255, 85, 0, 0.15);
+  border-color: rgba(255, 107, 0, 0.4);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.98), 0 0 30px rgba(255, 85, 0, 0.16);
   transform: translateY(-2px);
 }
 
-/* ─── Gcore Primary Orange Pill Button ─── */
+/* ─── Luxurious Sunset Orange Gradient Pill Button ─── */
 .gcore-btn-orange {
-  background: linear-gradient(180deg, #FF6600 0%, #FF4400 100%);
+  background: linear-gradient(135deg, #FF6B00 0%, #FF4400 50%, #E03500 100%);
   color: #FFFFFF;
   font-weight: 600;
   border-radius: 9999px;
-  box-shadow: 0 0 24px rgba(255, 85, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 26px rgba(255, 85, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .gcore-btn-orange:hover {
-  background: linear-gradient(180deg, #FF7700 0%, #FF5500 100%);
-  box-shadow: 0 0 36px rgba(255, 85, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #FF7B00 0%, #FF5500 50%, #F04000 100%);
+  box-shadow: 0 0 38px rgba(255, 85, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.45);
   transform: translateY(-1px) scale(1.02);
 }
 
@@ -92,50 +93,40 @@
   transform: scale(0.98);
 }
 
-/* ─── Gcore Dark Glass Pill Button ─── */
+/* ─── Premium Obsidian Dark Pill Button ─── */
 .gcore-btn-dark {
-  background: rgba(20, 24, 33, 0.85);
-  color: #F8FAFC;
+  background: #0E1117;
+  color: #FFFFFF;
   font-weight: 500;
   border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(16px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .gcore-btn-dark:hover {
-  background: rgba(30, 36, 48, 0.95);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: #181C26;
+  border-color: rgba(255, 107, 0, 0.4);
   color: #FFFFFF;
   transform: translateY(-1px);
 }
 
-/* ─── Gcore Chip & Pill Badges ─── */
+/* ─── Pill Badges & Chips ─── */
 .gcore-badge {
-  background: rgba(20, 24, 33, 0.7);
-  border: 1px solid rgba(255, 120, 0, 0.3);
-  color: #FFB380;
-  box-shadow: 0 0 15px rgba(255, 85, 0, 0.15);
+  background: rgba(14, 17, 23, 0.85);
+  border: 1px solid rgba(255, 107, 0, 0.3);
+  color: #FFB088;
+  box-shadow: 0 0 16px rgba(255, 85, 0, 0.14);
 }
 
-/* ─── Central AI Hardware Chip Glow ─── */
+/* ─── Central AI Hardware Chip ─── */
 .gcore-ai-chip {
-  background: linear-gradient(145deg, #181C26 0%, #0F121A 100%);
-  border: 1px solid rgba(255, 120, 0, 0.5);
+  background: linear-gradient(145deg, #141720 0%, #080A0E 100%);
+  border: 1.5px solid rgba(255, 107, 0, 0.55);
   box-shadow: 
-    0 0 40px rgba(255, 85, 0, 0.4),
-    inset 0 0 20px rgba(255, 85, 0, 0.2);
-}
-
-/* ─── Glowing Circuit Paths ─── */
-.circuit-line {
-  stroke: rgba(255, 120, 0, 0.3);
-  stroke-width: 1.5;
-  fill: none;
-}
-
-.circuit-glow {
-  filter: drop-shadow(0 0 6px rgba(255, 85, 0, 0.65));
+    0 0 45px rgba(255, 85, 0, 0.4),
+    inset 0 0 25px rgba(255, 85, 0, 0.18);
 }
 
 /* ─── Status Indicator Dots ─── */
@@ -152,12 +143,12 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #07080B;
+  background: #000000;
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 120, 0, 0.4);
+  background: rgba(255, 107, 0, 0.45);
 }

@@ -385,12 +385,12 @@ function HomeContent() {
 
             <div className="space-y-3 text-xs">
               <div className="flex gap-2.5 items-start">
-                <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono font-bold shrink-0">Caller</span>
+                <span className="px-2 py-0.5 rounded bg-white/10 text-slate-200 border border-white/10 font-mono font-bold shrink-0">Caller</span>
                 <p className="text-slate-200 leading-relaxed font-normal italic">&ldquo;{sampleAudios[activeTab].user}&rdquo;</p>
               </div>
 
               <div className="flex gap-2.5 items-start">
-                <span className="px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 font-mono font-bold shrink-0">AI Maya</span>
+                <span className="px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 font-mono font-bold shrink-0">AI Maya</span>
                 <p className="text-slate-100 leading-relaxed font-medium">&ldquo;{sampleAudios[activeTab].ai}&rdquo;</p>
               </div>
             </div>

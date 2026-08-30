@@ -7,14 +7,14 @@ import { Phone, X, Zap, Globe, Clock } from 'lucide-react';
 import { formatDuration } from '@/lib/utils';
 
 const LANG_LABELS: Record<string, { label: string; color: string }> = {
-  en: { label: 'EN', color: 'bg-blue-100 text-blue-700' },
-  hi: { label: 'HI', color: 'bg-amber-100 text-amber-700' },
-  mr: { label: 'MR', color: 'bg-purple-100 text-purple-700' },
+  en: { label: 'EN', color: 'bg-white/10 text-white border border-white/10' },
+  hi: { label: 'HI', color: 'bg-orange-500/20 text-orange-300 border border-orange-500/30' },
+  mr: { label: 'MR', color: 'bg-amber-500/20 text-amber-300 border border-amber-500/30' },
 };
 
 function LanguageBadge({ lang }: { lang?: string }) {
   if (!lang) return null;
-  const meta = LANG_LABELS[lang] || { label: lang.toUpperCase(), color: 'bg-surface-100 text-surface-600' };
+  const meta = LANG_LABELS[lang] || { label: lang.toUpperCase(), color: 'bg-white/10 text-slate-300' };
   return (
     <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${meta.color}`}>
       <Globe className="w-2.5 h-2.5" />
@@ -233,7 +233,7 @@ export default function CallsPage() {
                   </span>
                 </div>
                 <div className="flex justify-between text-surface-500">
-                  <span className="font-medium flex items-center gap-1"><Globe className="w-3 h-3 text-blue-500" /> Language</span>
+                  <span className="font-medium flex items-center gap-1"><Globe className="w-3 h-3 text-gcore-orange" /> Language</span>
                   <LanguageBadge lang={selectedCall.detected_language} />
                 </div>
               </div>
@@ -242,7 +242,7 @@ export default function CallsPage() {
             {/* Dialogue Turns */}
             <div className="px-6 py-4 overflow-y-auto flex-1">
               <h4 className="font-semibold text-surface-900 mb-3 text-[13px] flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-primary-500" />
+                <Clock className="w-3.5 h-3.5 text-gcore-orange" />
                 Dialogue ({selectedCall.dialogue_turns?.length || 0} turns)
               </h4>
 

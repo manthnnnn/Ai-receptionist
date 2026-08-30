@@ -13,7 +13,6 @@ import {
   Coins, 
   TrendingUp, 
   ShieldCheck, 
-  Globe,
   Radio
 } from 'lucide-react';
 
@@ -40,33 +39,29 @@ export default function VoiceEnginePage() {
       label: 'Voice Activity Detection (VAD)',
       engine: 'Silero Neural VAD',
       latency: '~15ms',
-      desc: 'Instant human barge-in & noise filtering',
-      color: 'accent-border-green',
-      iconColor: 'text-emerald-500 bg-emerald-50',
+      desc: 'Instant human barge-in & background noise suppression',
+      tag: 'Edge Native',
     },
     {
       label: 'Streaming STT',
       engine: 'Deepgram Nova-2',
       latency: '~178ms',
-      desc: 'Real-time Indian English, Hindi & Marathi',
-      color: 'accent-border-blue',
-      iconColor: 'text-blue-500 bg-blue-50',
+      desc: 'Real-time Indian English, Hindi & Marathi speech recognition',
+      tag: 'Multilingual',
     },
     {
       label: 'LLM & Tool Calling',
       engine: 'Groq LLaMA 3.3 70B',
       latency: '~215ms TTFT',
-      desc: 'Sub-250ms reasoning & atomic slot booking',
-      color: 'accent-border-purple',
-      iconColor: 'text-purple-500 bg-purple-50',
+      desc: 'Sub-250ms reasoning & atomic slot reservation',
+      tag: 'Autonomous',
     },
     {
       label: 'Streaming TTS',
       engine: 'Cartesia Sonic',
       latency: '~182ms TTFB',
-      desc: 'Natural conversational Indian vocal cadence',
-      color: 'accent-border-cyan',
-      iconColor: 'text-cyan-500 bg-cyan-50',
+      desc: 'Natural conversational Indian vocal cadence & empathy',
+      tag: 'Neural Voice',
     },
   ];
 
@@ -99,34 +94,34 @@ export default function VoiceEnginePage() {
   ];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
+    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in text-slate-100">
       {/* Header Banner */}
-      <div className="bg-white rounded-apple-lg shadow-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="gcore-card rounded-apple-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border border-white/10">
         <div>
-          <div className="inline-flex items-center gap-1.5 bg-primary-50 text-primary-700 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-primary-200/70 mb-2">
-            <Radio className="w-3 h-3 text-primary-500 animate-pulse" />
+          <div className="inline-flex items-center gap-1.5 gcore-badge text-xs font-semibold px-2.5 py-0.5 rounded-full mb-2">
+            <Radio className="w-3 h-3 text-gcore-orange animate-pulse" />
             <span>Active Pipeline Telemetry</span>
           </div>
-          <h1 className="text-xl font-semibold text-slate-900 tracking-apple">Voice Engine &amp; Telephony</h1>
-          <p className="text-xs text-slate-500 mt-1 font-normal max-w-xl">
-            Real-time latency breakdown, direct telephony COGS calculations, and carrier webhook endpoints.
+          <h1 className="text-2xl font-bold text-white tracking-tight">Voice Engine &amp; Telephony Stack</h1>
+          <p className="text-xs text-slate-400 mt-1 font-normal max-w-xl">
+            Real-time latency telemetry, direct telephony COGS calculations, and carrier webhook endpoints.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setIsPhoneSimulatorOpen(true)}
-            className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 hover:border-slate-300 font-medium text-xs px-4 py-2.5 rounded-apple transition-apple shadow-xs"
+            className="gcore-btn-dark px-4 py-2.5 text-xs flex items-center gap-2"
           >
-            <PhoneCall className="w-4 h-4 text-amber-500" strokeWidth={1.5} />
+            <PhoneCall className="w-4 h-4 text-amber-400" strokeWidth={1.8} />
             <span>Simulate Call</span>
           </button>
 
           <button
             onClick={() => setIsVoiceTesterOpen(true)}
-            className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white font-medium text-xs px-4 py-2.5 rounded-apple transition-apple shadow-sm"
+            className="gcore-btn-orange px-5 py-2.5 text-xs flex items-center gap-2 shadow-gcore-btn"
           >
-            <Mic className="w-4 h-4" strokeWidth={1.5} />
+            <Mic className="w-4 h-4" strokeWidth={2} />
             <span>Voice Console</span>
           </button>
         </div>
@@ -137,16 +132,16 @@ export default function VoiceEnginePage() {
         {pipelineStages.map((stage) => (
           <div
             key={stage.label}
-            className={`bg-white rounded-apple-lg shadow-card card-hover p-5 space-y-3 ${stage.color}`}
+            className="gcore-card rounded-apple-xl p-5 space-y-3 border border-white/10"
           >
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{stage.label}</span>
-              <span className="text-xs font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
+              <span className="text-xs font-mono font-bold text-orange-300 bg-orange-950/60 border border-orange-800/40 px-2 py-0.5 rounded">
                 {stage.latency}
               </span>
             </div>
-            <p className="text-[15px] font-semibold text-slate-900 tracking-apple">{stage.engine}</p>
-            <p className="text-xs text-slate-500 leading-relaxed">{stage.desc}</p>
+            <p className="text-[15px] font-bold text-white tracking-tight">{stage.engine}</p>
+            <p className="text-xs text-slate-400 leading-relaxed">{stage.desc}</p>
           </div>
         ))}
       </div>
@@ -154,92 +149,92 @@ export default function VoiceEnginePage() {
       {/* End-to-End Latency & Telemetry Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Latency Meter */}
-        <div className="bg-white rounded-apple-lg shadow-card p-6 space-y-4">
+        <div className="gcore-card rounded-apple-xl p-6 space-y-4 border border-white/10">
           <div className="flex items-center justify-between">
-            <h3 className="text-[15px] font-semibold text-slate-900 tracking-apple flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary-500" strokeWidth={1.5} />
+            <h3 className="text-[15px] font-bold text-white tracking-tight flex items-center gap-2">
+              <Zap className="w-4 h-4 text-gcore-orange" strokeWidth={2} />
               Turnaround Latency
             </h3>
-            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-              Sub-800ms Human Parity
+            <span className="text-xs font-mono font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-800/40 px-2.5 py-0.5 rounded-full">
+              Sub-800ms Target
             </span>
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between text-xs font-medium text-slate-600">
-              <span>Average Turnaround</span>
-              <span className="font-mono font-bold text-slate-900">{stats?.avg_turn_latency_ms || 579} ms</span>
+            <div className="flex justify-between text-xs font-medium text-slate-400">
+              <span>Total Pipeline Turnaround</span>
+              <span className="font-mono font-bold text-orange-300">{stats?.avg_turn_latency_ms || 579} ms</span>
             </div>
-            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
-              <div style={{ width: '4%' }} className="bg-emerald-400" title="VAD: 15ms" />
-              <div style={{ width: '31%' }} className="bg-blue-400" title="STT: 178ms" />
-              <div style={{ width: '35%' }} className="bg-purple-400" title="LLM: 215ms" />
-              <div style={{ width: '30%' }} className="bg-cyan-400" title="TTS: 182ms" />
+            <div className="w-full h-2.5 bg-black/60 rounded-full overflow-hidden flex border border-white/5">
+              <div style={{ width: '4%' }} className="bg-amber-400" title="VAD: 15ms" />
+              <div style={{ width: '31%' }} className="bg-orange-500" title="STT: 178ms" />
+              <div style={{ width: '35%' }} className="bg-orange-600" title="LLM: 215ms" />
+              <div style={{ width: '30%' }} className="bg-amber-500" title="TTS: 182ms" />
             </div>
             <div className="flex justify-between text-[10px] text-slate-400 pt-1 font-mono">
-              <span className="text-emerald-600 font-semibold">• VAD 15ms</span>
-              <span className="text-blue-600 font-semibold">• STT 178ms</span>
-              <span className="text-purple-600 font-semibold">• LLM 215ms</span>
-              <span className="text-cyan-600 font-semibold">• TTS 182ms</span>
+              <span className="text-amber-400 font-semibold">• VAD 15ms</span>
+              <span className="text-orange-400 font-semibold">• STT 178ms</span>
+              <span className="text-orange-300 font-semibold">• LLM 215ms</span>
+              <span className="text-amber-300 font-semibold">• TTS 182ms</span>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 grid grid-cols-2 gap-3 text-xs">
-            <div className="p-2.5 bg-slate-50 rounded-apple">
-              <span className="text-slate-400 text-[11px] block">Streaming Protocol</span>
-              <span className="font-medium text-slate-800 font-mono text-[11px]">HTTP/2 + WebRTC</span>
+          <div className="pt-3 border-t border-white/10 grid grid-cols-2 gap-3 text-xs">
+            <div className="p-2.5 bg-black/40 border border-white/5 rounded-apple">
+              <span className="text-slate-500 text-[11px] block">Audio Protocol</span>
+              <span className="font-medium text-slate-200 font-mono text-[11px]">HTTP/2 + WebRTC</span>
             </div>
-            <div className="p-2.5 bg-slate-50 rounded-apple">
-              <span className="text-slate-400 text-[11px] block">Language Detection</span>
-              <span className="font-medium text-slate-800 font-mono text-[11px]">Auto (mr / hi / en)</span>
+            <div className="p-2.5 bg-black/40 border border-white/5 rounded-apple">
+              <span className="text-slate-500 text-[11px] block">Language Detection</span>
+              <span className="font-medium text-slate-200 font-mono text-[11px]">Auto (mr / hi / en)</span>
             </div>
           </div>
         </div>
 
         {/* COGS Counter (₹/min) */}
-        <div className="lg:col-span-2 bg-white rounded-apple-lg shadow-card p-6 space-y-4">
+        <div className="lg:col-span-2 gcore-card rounded-apple-xl p-6 space-y-4 border border-white/10">
           <div className="flex items-center justify-between">
-            <h3 className="text-[15px] font-semibold text-slate-900 tracking-apple flex items-center gap-2">
-              <Coins className="w-4 h-4 text-amber-500" strokeWidth={1.5} />
+            <h3 className="text-[15px] font-bold text-white tracking-tight flex items-center gap-2">
+              <Coins className="w-4 h-4 text-gcore-orange" strokeWidth={2} />
               Direct Telephony COGS Breakdown
             </h3>
-            <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
+            <span className="text-xs font-bold text-orange-300 bg-orange-950/60 border border-orange-800/40 px-3 py-1 rounded-full font-mono">
               ₹3.23 / min Total Blended
             </span>
           </div>
 
-          <div className="divide-y divide-slate-100 text-xs">
+          <div className="divide-y divide-white/[0.06] text-xs">
             {cogsBreakdown.map((item) => (
               <div key={item.component} className="py-2.5 flex items-center justify-between">
-                <span className="font-medium text-slate-700">{item.component}</span>
+                <span className="font-medium text-slate-300">{item.component}</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-slate-400">{item.share}</span>
-                  <span className="font-mono font-semibold text-slate-900">{item.rate}</span>
+                  <span className="text-[11px] text-slate-500 font-mono">{item.share}</span>
+                  <span className="font-mono font-semibold text-orange-200">{item.rate}</span>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500 flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" strokeWidth={1.5} />
+          <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+            <span className="text-slate-400 flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-400" strokeWidth={2} />
               Gross Margin at ₹2,999/mo Starter Plan (300 mins)
             </span>
-            <span className="font-bold text-emerald-600 text-sm">67.7% Margin</span>
+            <span className="font-bold text-emerald-400 text-sm font-mono">67.7% Margin</span>
           </div>
         </div>
       </div>
 
       {/* Telephony Endpoints */}
-      <div className="bg-white rounded-apple-lg shadow-card p-6 space-y-4">
+      <div className="gcore-card rounded-apple-xl p-6 space-y-4 border border-white/10">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-[15px] font-semibold text-slate-900 tracking-apple flex items-center gap-2">
-              <Activity className="w-4 h-4 text-primary-500" strokeWidth={1.5} />
+            <h3 className="text-[15px] font-bold text-white tracking-tight flex items-center gap-2">
+              <Activity className="w-4 h-4 text-gcore-orange" strokeWidth={2} />
               Telephony Webhook Integration
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-              Copy these public webhook URLs into your Twilio Console under <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">Phone Numbers &gt; Voice &amp; Fax</span>.
+            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+              Copy these public webhook URLs into your Twilio Console under <span className="font-mono text-orange-300 bg-black/60 px-1.5 py-0.5 rounded border border-white/10">Phone Numbers &gt; Voice &amp; Fax</span>.
             </p>
           </div>
         </div>
@@ -248,38 +243,38 @@ export default function VoiceEnginePage() {
           {endpoints.map((ep) => (
             <div
               key={ep.path}
-              className="bg-slate-50 border border-slate-200 rounded-apple-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              className="bg-black/50 border border-white/10 rounded-apple-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
             >
               <div className="space-y-1">
-                <span className="text-slate-500 text-[11px] font-sans font-medium">{ep.label}</span>
-                <div className="font-semibold text-slate-900 flex items-center gap-2">
-                  <span className="text-primary-600 font-bold">{ep.method}</span>
+                <span className="text-slate-400 text-[11px] font-sans font-medium">{ep.label}</span>
+                <div className="font-semibold text-white flex items-center gap-2">
+                  <span className="text-gcore-orange font-bold">{ep.method}</span>
                   <span>{origin ? `${origin}${ep.path}` : ep.path}</span>
                 </div>
-                <p className="text-[11px] font-sans text-slate-400">{ep.description}</p>
+                <p className="text-[11px] font-sans text-slate-500">{ep.description}</p>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => copyToClipboard(ep.path)}
-                  className="flex items-center gap-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1.5 rounded-apple text-xs font-sans font-medium transition-apple shadow-xs"
+                  className="gcore-btn-dark px-3 py-1.5 text-xs font-sans flex items-center gap-1.5"
                 >
                   {copiedPath === ep.path ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-500" strokeWidth={2} />
-                      <span className="text-emerald-600">Copied</span>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" strokeWidth={2} />
+                      <span className="text-emerald-400">Copied</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5 text-slate-400" strokeWidth={1.5} />
+                      <Copy className="w-3.5 h-3.5 text-slate-400" strokeWidth={1.8} />
                       <span>Copy URL</span>
                     </>
                   )}
                 </button>
 
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-sans font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-sans font-medium text-emerald-300 bg-emerald-950/60 border border-emerald-800/40 px-2.5 py-1 rounded-full">
                   <span className="status-dot bg-emerald-400"></span>
-                  Active
+                  Healthy
                 </span>
               </div>
             </div>
