@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: 'class',
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -59,6 +60,7 @@ const config: Config = {
         'gcore-glow': '0 0 50px -10px rgba(255, 85, 0, 0.35)',
         'gcore-chip': '0 0 30px rgba(255, 100, 0, 0.3), inset 0 0 15px rgba(255, 85, 0, 0.15)',
         'black-card': '0 12px 36px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+        'light-card': '0 8px 30px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03)',
       },
       borderRadius: {
         'apple': '14px',

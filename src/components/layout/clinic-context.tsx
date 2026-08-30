@@ -16,6 +16,9 @@ interface ClinicContextType {
   setIsPhoneSimulatorOpen: (open: boolean) => void;
   isManualBookingOpen: boolean;
   setIsManualBookingOpen: (open: boolean) => void;
+  theme: 'dark' | 'light';
+  setTheme: (t: 'dark' | 'light') => void;
+  toggleTheme: () => void;
 }
 
 const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
@@ -29,6 +32,40 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
   const [isVoiceTesterOpen, setIsVoiceTesterOpen] = useState(false);
   const [isPhoneSimulatorOpen, setIsPhoneSimulatorOpen] = useState(false);
   const [isManualBookingOpen, setIsManualBookingOpen] = useState(false);
+  
+  // Theme state: dark (default) | light
+  const [theme, setThemeState] = useState<'dark' | 'light'>('dark');
+
+  // Load saved theme on client mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('clinic_theme') as 'dark' | 'light' | null;
+      const initialTheme = saved === 'light' ? 'light' : 'dark';
+      setThemeState(initialTheme);
+      applyTheme(initialTheme);
+    }
+  }, []);
+
+  const applyTheme = (t: 'dark' | 'light') => {
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      root.classList.remove('dark', 'light');
+      root.classList.add(t);
+      root.setAttribute('data-theme', t);
+    }
+  };
+
+  const setTheme = (t: 'dark' | 'light') => {
+    setThemeState(t);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('clinic_theme', t);
+    }
+    applyTheme(t);
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
 
   const refreshData = () => setRefreshKey((k) => k + 1);
 
@@ -65,9 +102,18 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
       },
       {
         id: '00000000-0000-0000-0000-000000000002',
-        name: 'Radiance Dermatology & Laser Center',
-        address: '12, Indiranagar 100ft Road, Bangalore - 560038',
-        phone_number: '+91-80-4567-8902',
+        name: 'Fortis Health Point',
+        address: '14, Bannerghatta Main Rd, Bengaluru - 560076',
+        phone_number: '+91-80-5678-9012',
+        timezone: 'Asia/Kolkata',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        id: '00000000-0000-0000-0000-000000000003',
+        name: 'Max Care Multispeciality',
+        address: '88, Linking Road, Bandra West, Mumbai - 400050',
+        phone_number: '+91-22-6789-0123',
         timezone: 'Asia/Kolkata',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -75,7 +121,7 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
     ]);
   }, []);
 
-  const activeClinic = clinics.find((c) => c.id === activeClinicId);
+  const activeClinic = clinics.find((c) => c.id === activeClinicId) || clinics[0];
 
   return (
     <ClinicContext.Provider
@@ -92,6 +138,9 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
         setIsPhoneSimulatorOpen,
         isManualBookingOpen,
         setIsManualBookingOpen,
+        theme,
+        setTheme,
+        toggleTheme,
       }}
     >
       {children}

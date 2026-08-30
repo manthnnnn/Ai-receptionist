@@ -11,7 +11,7 @@ import { BookingModal } from '@/components/appointments/booking-modal';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClinicProvider>
-      <div className="min-h-screen flex flex-col bg-black text-white relative">
+      <div className="min-h-screen flex flex-col bg-black [html.light_&]:bg-[#F8F9FA] text-white [html.light_&]:text-slate-900 relative transition-colors duration-300">
         {/* Ambient Top-Right Flare */}
         <div className="gcore-electric-ray" />
 
@@ -19,7 +19,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Header />
 
         {/* Body Container */}
-        <div className="flex-1 flex overflow-hidden relative z-10 bg-black">
+        <div className="flex-1 flex overflow-hidden relative z-10 bg-black [html.light_&]:bg-[#F8F9FA] transition-colors duration-300">
           {/* Sidebar */}
           <Sidebar />
 

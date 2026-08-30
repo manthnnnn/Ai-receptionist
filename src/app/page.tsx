@@ -24,6 +24,7 @@ import {
 import { VoiceTestModal } from '@/components/voice/voice-test-modal';
 import { PhoneSimulatorModal } from '@/components/voice/phone-simulator-modal';
 import { ClinicProvider, useClinic } from '@/components/layout/clinic-context';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 
 function HomeContent() {
   const { setIsVoiceTesterOpen, setIsPhoneSimulatorOpen } = useClinic();
@@ -175,6 +176,7 @@ function HomeContent() {
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Link
               href="/dashboard"
               className="gcore-btn-dark px-4 py-2 text-xs"
@@ -183,7 +185,7 @@ function HomeContent() {
             </Link>
             <Link
               href="/dashboard"
-              className="gcore-btn-orange px-5 py-2 text-xs"
+              className="gcore-btn-orange px-5 py-2 text-xs shadow-gcore-btn"
             >
               Launch Console
             </Link>

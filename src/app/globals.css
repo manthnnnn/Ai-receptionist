@@ -10,17 +10,23 @@
     --gcore-amber: #FF7700;
   }
 
+  html.light {
+    --background: #F8F9FA;
+    --foreground: #0F172A;
+  }
+
   body {
     color: var(--foreground);
-    background: #000000;
+    background: var(--background);
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
-/* ─── Pure Jet Black Canvas with Subtle Grid ─── */
+/* ─── Canvas & Micro Isometric Grid ─── */
 .bg-gcore-canvas {
   background-color: #000000;
   background-image: 
@@ -29,7 +35,15 @@
   background-size: 40px 40px;
 }
 
-/* ─── Warm Amber Electric Lighting Ray ─── */
+html.light .bg-gcore-canvas {
+  background-color: #F8F9FA;
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ─── Ambient Warm Flare ─── */
 .gcore-electric-ray {
   position: absolute;
   top: -120px;
@@ -43,20 +57,12 @@
   transform: rotate(-15deg);
 }
 
-.gcore-electric-streak {
-  position: absolute;
-  top: -60px;
-  right: 60px;
-  width: 450px;
-  height: 900px;
-  background: linear-gradient(135deg, rgba(255, 110, 0, 0.15) 0%, rgba(255, 70, 0, 0.04) 40%, transparent 70%);
-  filter: blur(45px);
-  transform: rotate(35deg);
-  pointer-events: none;
-  z-index: 0;
+html.light .gcore-electric-ray {
+  background: radial-gradient(circle, rgba(255, 85, 0, 0.12) 0%, rgba(255, 120, 0, 0.04) 35%, transparent 70%);
+  filter: blur(80px);
 }
 
-/* ─── Pure Black Matte Glass Cards (Zero Blue Undertone) ─── */
+/* ─── Cards System (Dark & Light) ─── */
 .gcore-card {
   background: rgba(10, 10, 10, 0.95);
   backdrop-filter: blur(28px);
@@ -69,6 +75,18 @@
 .gcore-card:hover {
   border-color: rgba(255, 85, 0, 0.4);
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.98), 0 0 30px rgba(255, 85, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+html.light .gcore-card {
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+}
+
+html.light .gcore-card:hover {
+  border-color: rgba(255, 85, 0, 0.4);
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.08), 0 0 20px rgba(255, 85, 0, 0.12);
   transform: translateY(-2px);
 }
 
@@ -93,7 +111,7 @@
   transform: scale(0.98);
 }
 
-/* ─── Pure Pitch Black Pill Button ─── */
+/* ─── Neutral Pill Button ─── */
 .gcore-btn-dark {
   background: #111111;
   color: #FFFFFF;
@@ -112,12 +130,32 @@
   transform: translateY(-1px);
 }
 
+html.light .gcore-btn-dark {
+  background: #F1F5F9;
+  color: #0F172A;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html.light .gcore-btn-dark:hover {
+  background: #E2E8F0;
+  border-color: rgba(255, 85, 0, 0.4);
+  color: #000000;
+}
+
 /* ─── Badges & Chips ─── */
 .gcore-badge {
   background: rgba(18, 18, 18, 0.9);
   border: 1px solid rgba(255, 85, 0, 0.3);
   color: #FFB088;
   box-shadow: 0 0 16px rgba(255, 85, 0, 0.12);
+}
+
+html.light .gcore-badge {
+  background: rgba(255, 85, 0, 0.08);
+  border: 1px solid rgba(255, 85, 0, 0.25);
+  color: #EA580C;
+  box-shadow: none;
 }
 
 /* ─── Central AI Hardware Chip ─── */
@@ -129,6 +167,14 @@
     inset 0 0 25px rgba(255, 85, 0, 0.18);
 }
 
+html.light .gcore-ai-chip {
+  background: linear-gradient(145deg, #FFFFFF 0%, #F8FAFC 100%);
+  border: 1.5px solid rgba(255, 85, 0, 0.6);
+  box-shadow: 
+    0 8px 30px rgba(255, 85, 0, 0.25),
+    inset 0 0 15px rgba(255, 85, 0, 0.08);
+}
+
 /* ─── Status Indicator Dots ─── */
 .status-dot {
   width: 8px;
@@ -137,16 +183,16 @@
   flex-shrink: 0;
 }
 
-/* ─── Custom Minimal Black Scrollbar ─── */
+/* ─── Minimal Scrollbars ─── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #000000;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(150, 150, 150, 0.25);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
