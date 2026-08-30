@@ -126,7 +126,7 @@ async function tryLiveLlmCall(
     ];
 
     const modelsToTry = isGroq
-      ? ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'groq/compound']
+      ? ['qwen/qwen3.8-27b', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'groq/compound']
       : ['gpt-4o-mini', 'gpt-4o'];
 
     for (const m of modelsToTry) {
