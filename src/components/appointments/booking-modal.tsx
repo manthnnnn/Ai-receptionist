@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useClinic } from '../layout/clinic-context';
 import { Doctor } from '@/types';
-import { X, Calendar, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, Calendar, Clock, CheckCircle2, AlertCircle, User, Phone, Stethoscope, FileText } from 'lucide-react';
 
 export function BookingModal() {
   const { isManualBookingOpen, setIsManualBookingOpen, activeClinicId, refreshData } = useClinic();
@@ -18,8 +18,6 @@ export function BookingModal() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  const inputClass = "w-full bg-surface-50 border border-surface-200 rounded-apple px-3.5 py-2.5 text-[13px] text-surface-800 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-apple placeholder:text-surface-300";
 
   useEffect(() => {
     const tomorrow = new Date();
@@ -60,7 +58,7 @@ export function BookingModal() {
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSlot || !patientName || !patientPhone) {
-      setError('Please select a slot and provide patient details');
+      setError('Please select a slot and fill in patient details');
       return;
     }
 
@@ -88,14 +86,14 @@ export function BookingModal() {
       if (!data.success) {
         setError(data.message || 'Failed to book slot');
       } else {
-        setSuccess('Appointment confirmed with atomic locking');
+        setSuccess('Appointment confirmed successfully!');
         refreshData();
         setTimeout(() => {
           setIsManualBookingOpen(false);
           setSuccess(null);
           setPatientName('');
           setNotes('');
-        }, 1200);
+        }, 1400);
       }
     } catch (err: any) {
       setError(err.message || 'Booking error');
@@ -106,47 +104,72 @@ export function BookingModal() {
 
   if (!isManualBookingOpen) return null;
 
+  const inputClass =
+    'w-full bg-[#0d0d0d] border border-white/10 rounded-xl px-4 py-2.5 text-[13px] text-white ' +
+    'focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 ' +
+    'transition-all placeholder:text-white/20 appearance-none';
+
+  const labelClass = 'block text-[11px] font-semibold text-white/50 uppercase tracking-widest mb-1.5';
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white w-full max-w-lg rounded-apple-xl shadow-modal overflow-hidden animate-scale-in">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-surface-100 flex items-center justify-between">
-          <h3 className="font-semibold text-surface-900 text-[15px] tracking-apple">New Booking</h3>
+    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+      <div
+        className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-scale-in flex flex-col"
+        style={{
+          background: 'linear-gradient(145deg, #111111 0%, #0a0a0a 100%)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          maxHeight: '92vh',
+        }}
+      >
+        {/* ── Header ── */}
+        <div className="px-6 py-4 border-b border-white/[0.07] flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-orange-500/15 border border-orange-500/25 flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-orange-400" strokeWidth={2} />
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-[15px] tracking-tight">New Appointment</h3>
+              <p className="text-[11px] text-white/35">Fill in the details below to confirm</p>
+            </div>
+          </div>
           <button
             onClick={() => setIsManualBookingOpen(false)}
-            className="text-surface-400 hover:text-surface-600 p-1 rounded-lg hover:bg-surface-50 transition-apple"
+            className="text-white/30 hover:text-white/80 p-1.5 rounded-lg hover:bg-white/5 transition-all"
           >
             <X className="w-5 h-5" strokeWidth={1.5} />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleBooking} className="p-6 space-y-4">
+        {/* ── Form ── */}
+        <form onSubmit={handleBooking} className="p-6 space-y-4 overflow-y-auto flex-1">
+          {/* Alerts */}
           {error && (
-            <div className="flex items-center gap-2 bg-rose-50 border border-rose-100 text-rose-600 text-xs px-3.5 py-2.5 rounded-apple animate-slide-up">
+            <div className="flex items-center gap-2.5 bg-rose-500/10 border border-rose-500/25 text-rose-400 text-[12px] px-4 py-3 rounded-xl animate-slide-up">
               <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
               <span className="font-medium">{error}</span>
             </div>
           )}
-
           {success && (
-            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 text-emerald-600 text-xs px-3.5 py-2.5 rounded-apple font-medium animate-slide-up">
+            <div className="flex items-center gap-2.5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[12px] px-4 py-3 rounded-xl animate-slide-up">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
-              <span>{success}</span>
+              <span className="font-medium">{success}</span>
             </div>
           )}
 
           {/* Doctor */}
           <div>
-            <label className="block text-xs font-medium text-surface-600 mb-1.5">Doctor</label>
+            <label className={labelClass}>
+              <span className="flex items-center gap-1.5"><Stethoscope className="w-3 h-3" /> Doctor</span>
+            </label>
             <select
               value={selectedDoctorId}
               onChange={(e) => setSelectedDoctorId(e.target.value)}
               className={inputClass}
+              style={{ colorScheme: 'dark' }}
             >
               {doctors.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name} ({d.specialty})
+                <option key={d.id} value={d.id} style={{ background: '#111' }}>
+                  {d.name} — {d.specialty}
                 </option>
               ))}
             </select>
@@ -154,32 +177,44 @@ export function BookingModal() {
 
           {/* Date */}
           <div>
-            <label className="block text-xs font-medium text-surface-600 mb-1.5">Date</label>
+            <label className={labelClass}>
+              <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3" /> Date</span>
+            </label>
             <input
               type="date"
               value={appointmentDate}
               onChange={(e) => setAppointmentDate(e.target.value)}
               className={inputClass}
+              style={{ colorScheme: 'dark' }}
             />
           </div>
 
-          {/* Slots */}
+          {/* Time Slots */}
           <div>
-            <label className="flex items-center justify-between text-xs font-medium text-surface-600 mb-2">
-              <span>Available Slots</span>
-              <span className="text-[11px] text-primary-500 font-medium">{availableSlots.length} open</span>
+            <label className={labelClass}>
+              <span className="flex items-center gap-1.5 justify-between w-full">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-3 h-3" /> Available Slots
+                </span>
+                {availableSlots.length > 0 && (
+                  <span className="text-orange-400 font-semibold text-[11px] normal-case tracking-normal">
+                    {availableSlots.length} open
+                  </span>
+                )}
+              </span>
             </label>
+
             {availableSlots.length > 0 ? (
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-0.5">
+              <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto p-0.5">
                 {availableSlots.map((slot) => (
                   <button
                     type="button"
                     key={slot.time_24h}
                     onClick={() => setSelectedSlot(slot.time_24h)}
-                    className={`px-3 py-1.5 rounded-apple text-xs font-medium border transition-apple ${
+                    className={`px-3.5 py-1.5 rounded-xl text-[12px] font-semibold border transition-all ${
                       selectedSlot === slot.time_24h
-                        ? 'bg-primary-500 text-white border-primary-500 shadow-sm'
-                        : 'bg-surface-50 hover:bg-surface-100 text-surface-600 border-surface-200 hover:border-surface-300'
+                        ? 'bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/20'
+                        : 'bg-white/[0.04] hover:bg-white/[0.08] text-white/60 hover:text-white border-white/10 hover:border-white/20'
                     }`}
                   >
                     {slot.time_formatted}
@@ -187,15 +222,17 @@ export function BookingModal() {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-surface-400 bg-surface-50 p-3 rounded-apple border border-dashed border-surface-200">
-                No slots available on this date.
-              </p>
+              <div className="text-[12px] text-white/30 bg-white/[0.03] px-4 py-3.5 rounded-xl border border-dashed border-white/10 text-center">
+                No available slots on this date
+              </div>
             )}
           </div>
 
           {/* Patient Name */}
           <div>
-            <label className="block text-xs font-medium text-surface-600 mb-1.5">Patient Name</label>
+            <label className={labelClass}>
+              <span className="flex items-center gap-1.5"><User className="w-3 h-3" /> Patient Name</span>
+            </label>
             <input
               type="text"
               placeholder="e.g. Rahul Sharma"
@@ -208,44 +245,59 @@ export function BookingModal() {
 
           {/* Patient Phone */}
           <div>
-            <label className="block text-xs font-medium text-surface-600 mb-1.5">Phone</label>
+            <label className={labelClass}>
+              <span className="flex items-center gap-1.5"><Phone className="w-3 h-3" /> Phone Number</span>
+            </label>
             <input
               type="tel"
               placeholder="+91 98765 43210"
               value={patientPhone}
               onChange={(e) => setPatientPhone(e.target.value)}
               required
-              className={`${inputClass} font-mono`}
+              className={`${inputClass} font-mono tracking-wide`}
             />
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-medium text-surface-600 mb-1.5">Notes (Optional)</label>
+            <label className={labelClass}>
+              <span className="flex items-center gap-1.5"><FileText className="w-3 h-3" /> Notes <span className="text-white/20 normal-case tracking-normal font-normal">(optional)</span></span>
+            </label>
             <textarea
               rows={2}
               placeholder="Symptoms or chief complaint..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className={inputClass}
+              style={{ resize: 'none' }}
             />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-surface-100">
+          <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/[0.07]">
             <button
               type="button"
               onClick={() => setIsManualBookingOpen(false)}
-              className="px-4 py-2 rounded-apple text-xs font-medium text-surface-500 hover:bg-surface-50 transition-apple"
+              className="px-5 py-2.5 rounded-xl text-[12px] font-semibold text-white/40 hover:text-white/70 hover:bg-white/5 transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={loading || availableSlots.length === 0}
-              className="bg-primary-500 hover:bg-primary-600 text-white font-medium text-xs px-5 py-2.5 rounded-apple shadow-sm transition-apple disabled:opacity-50"
+              disabled={loading || availableSlots.length === 0 || !selectedSlot}
+              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-[12px] px-6 py-2.5 rounded-xl shadow-lg shadow-orange-500/20 transition-all"
             >
-              {loading ? 'Confirming...' : 'Confirm Booking'}
+              {loading ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Confirming...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2.5} />
+                  Confirm Booking
+                </>
+              )}
             </button>
           </div>
         </form>
