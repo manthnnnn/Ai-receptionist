@@ -124,7 +124,7 @@ async function tryLiveLlmCall(
     ];
 
     const modelsToTry = isGroq
-      ? ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'llama-3.1-8b-instant']
+      ? ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'groq/compound']
       : ['gpt-4o-mini', 'gpt-4o'];
 
     for (const m of modelsToTry) {
@@ -138,7 +138,7 @@ async function tryLiveLlmCall(
           body: JSON.stringify({
             model: m,
             messages,
-            temperature: 0.3,
+            temperature: 0.35,
             max_tokens: 160,
           }),
         });
