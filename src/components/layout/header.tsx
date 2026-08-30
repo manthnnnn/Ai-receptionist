@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useClinic } from './clinic-context';
-import { Sparkles, Building2, PhoneCall, Mic, ChevronDown, Activity } from 'lucide-react';
+import { Building2, PhoneCall, Mic, ChevronDown, Activity } from 'lucide-react';
 import Link from 'next/link';
 
 export function Header() {
@@ -16,24 +16,26 @@ export function Header() {
   } = useClinic();
 
   return (
-    <header className="glass-dark sticky top-0 z-40 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.08]">
+    <header className="bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.08]">
       {/* Brand */}
       <div className="flex items-center gap-3">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-apple bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-white shadow-glow-cyan transition-apple group-hover:scale-105">
-            <Activity className="w-4 h-4" strokeWidth={2.2} />
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gcore-orange to-amber-600 flex items-center justify-center text-white shadow-gcore-btn transition-apple group-hover:scale-105">
+            <Activity className="w-4 h-4" strokeWidth={2.5} />
           </div>
-          <span className="font-semibold text-[15px] tracking-tight text-white flex items-center gap-1">
-            Clinic<span className="text-sky-400 font-bold">AI</span>
-            <span className="text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">Pro</span>
+          <span className="font-bold text-[15px] tracking-tight text-white flex items-center gap-1.5">
+            Clinic<span className="text-gcore-orange">AI</span>
+            <span className="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full gcore-badge">
+              Edge
+            </span>
           </span>
         </Link>
       </div>
 
       {/* Tenant Switcher */}
       <div className="flex items-center">
-        <div className="flex items-center glass-chip rounded-apple px-3.5 py-1.5 text-xs gap-2 transition-apple hover:border-sky-500/40">
-          <Building2 className="w-3.5 h-3.5 text-sky-400" strokeWidth={1.8} />
+        <div className="flex items-center gcore-card rounded-apple px-3.5 py-1.5 text-xs gap-2 transition-apple hover:border-gcore-orange/40">
+          <Building2 className="w-3.5 h-3.5 text-gcore-orange" strokeWidth={1.8} />
           <select
             value={activeClinicId}
             onChange={(e) => setActiveClinicId(e.target.value)}
@@ -53,7 +55,7 @@ export function Header() {
       {/* Actions */}
       <div className="flex items-center gap-3">
         {/* Latency Badge */}
-        <div className="hidden sm:flex items-center gap-2 glass-chip px-3 py-1 rounded-full text-[11px] text-slate-300">
+        <div className="hidden sm:flex items-center gap-2 gcore-card px-3 py-1 rounded-full text-[11px] text-slate-300">
           <span className="status-dot bg-emerald-400 animate-pulse"></span>
           <span>Latency <strong className="text-emerald-400 font-semibold font-mono">~575ms</strong></span>
         </div>
@@ -61,7 +63,7 @@ export function Header() {
         {/* PSTN Simulator */}
         <button
           onClick={() => setIsPhoneSimulatorOpen(true)}
-          className="flex items-center gap-2 bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700/80 hover:border-slate-600 font-medium px-3.5 py-2 rounded-apple text-xs transition-apple active:scale-95"
+          className="gcore-btn-dark px-3.5 py-2 text-xs flex items-center gap-2"
         >
           <PhoneCall className="w-3.5 h-3.5 text-amber-400" strokeWidth={1.8} />
           <span>Simulate Call</span>
@@ -70,10 +72,10 @@ export function Header() {
         {/* WebRTC Tester */}
         <button
           onClick={() => setIsVoiceTesterOpen(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-medium px-4 py-2 rounded-apple text-xs transition-apple shadow-glow-cyan active:scale-95"
+          className="gcore-btn-orange px-4 py-2 text-xs flex items-center gap-2 shadow-gcore-btn"
         >
           <Mic className="w-3.5 h-3.5" strokeWidth={2} />
-          <span>Live Voice Console</span>
+          <span>Voice Console</span>
         </button>
       </div>
     </header>

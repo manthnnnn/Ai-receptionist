@@ -26,96 +26,101 @@ export default function DashboardOverviewPage() {
       label: 'Appointments',
       value: stats?.appointments_count ?? 3,
       suffix: '',
-      accent: 'text-primary-600',
-      borderColor: 'accent-border-blue',
-      sub: 'Active slots',
+      accent: 'text-gcore-orange',
+      borderColor: 'border-l-4 border-l-gcore-orange',
+      sub: 'Zero collision lock',
       subIcon: ArrowUpRight,
-      subColor: 'text-emerald-600',
+      subColor: 'text-emerald-400',
     },
     {
-      label: 'Total Calls',
+      label: 'Total Inbound Calls',
       value: stats?.total_calls_count ?? 3,
       suffix: '',
-      accent: 'text-surface-900',
-      borderColor: 'accent-border-purple',
+      accent: 'text-white',
+      borderColor: 'border-l-4 border-l-purple-500',
       sub: 'PSTN & WebRTC',
-      subIcon: null,
-      subColor: 'text-surface-400',
+      subIcon: PhoneCall,
+      subColor: 'text-slate-400',
     },
     {
-      label: 'Booking Rate',
+      label: 'Autonomous Booking Rate',
       value: stats?.booking_rate_percentage ?? 33.3,
       suffix: '%',
-      accent: 'text-emerald-600',
-      borderColor: 'accent-border-green',
-      sub: 'AI conversion',
+      accent: 'text-emerald-400',
+      borderColor: 'border-l-4 border-l-emerald-500',
+      sub: 'AI voice conversion',
       subIcon: TrendingUp,
-      subColor: 'text-emerald-600',
+      subColor: 'text-emerald-400',
     },
     {
-      label: 'Avg Latency',
+      label: 'Avg Turnaround Latency',
       value: stats?.avg_turn_latency_ms ?? 579,
       suffix: 'ms',
-      accent: 'text-primary-600',
-      borderColor: 'accent-border-cyan',
-      sub: 'Sub-800ms ✓',
-      subIcon: null,
-      subColor: 'text-emerald-600',
+      accent: 'text-orange-400',
+      borderColor: 'border-l-4 border-l-amber-500',
+      sub: 'Sub-800ms human parity',
+      subIcon: Zap,
+      subColor: 'text-emerald-400',
     },
     {
-      label: 'Direct COGS',
+      label: 'Direct Telephony COGS',
       value: `₹${stats?.direct_cogs_inr ?? 11.63}`,
       suffix: '',
-      accent: 'text-amber-600',
-      borderColor: 'accent-border-amber',
+      accent: 'text-amber-400',
+      borderColor: 'border-l-4 border-l-amber-500',
       sub: '₹3.23 / min rate',
-      subIcon: null,
-      subColor: 'text-surface-400',
+      subIcon: Coins,
+      subColor: 'text-amber-400',
     },
     {
-      label: 'Est. Revenue',
+      label: 'Estimated Revenue',
       value: `₹${stats?.est_revenue_inr ?? 1950}`,
       suffix: '',
-      accent: 'text-primary-600',
-      borderColor: 'accent-border-blue',
-      sub: 'Consultation fees',
-      subIcon: null,
-      subColor: 'text-surface-400',
+      accent: 'text-gcore-orange',
+      borderColor: 'border-l-4 border-l-gcore-orange',
+      sub: 'Verified consultations',
+      subIcon: Banknote,
+      subColor: 'text-emerald-400',
     },
   ];
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
       {/* Title Banner */}
-      <div className="bg-white rounded-apple-lg shadow-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="gcore-card rounded-apple-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border border-white/10">
         <div>
-          <h1 className="text-xl font-semibold text-surface-900 tracking-apple">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[10px] uppercase font-mono font-bold tracking-wider px-2 py-0.5 rounded-full gcore-badge">
+              Active Medical Tenant
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
             {activeClinic?.name || 'Apollo Dental Clinic'}
           </h1>
-          <div className="flex items-center gap-2 text-xs text-surface-400 mt-1.5 font-medium">
-            <span className="flex items-center gap-1 text-emerald-600">
-              <span className="status-dot bg-emerald-400"></span>
-              RLS Active
+          <div className="flex items-center gap-3 text-xs text-slate-400 mt-1.5 font-medium">
+            <span className="flex items-center gap-1.5 text-emerald-400">
+              <span className="status-dot bg-emerald-400 animate-pulse"></span>
+              PostgreSQL RLS Protected
             </span>
-            <span className="text-surface-300">•</span>
-            <span>Sub-800ms Voice Pipeline</span>
+            <span className="text-slate-600">•</span>
+            <span className="text-orange-300">Carrier SIP / PSTN Ready</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setIsVoiceTesterOpen(true)}
-            className="flex items-center gap-2 bg-surface-50 hover:bg-surface-100 text-surface-600 border border-surface-200 hover:border-surface-300 font-medium text-xs px-4 py-2 rounded-apple transition-apple"
+            className="gcore-btn-dark px-4 py-2.5 text-xs flex items-center gap-2"
           >
-            <Terminal className="w-4 h-4 text-surface-400" strokeWidth={1.5} />
+            <Terminal className="w-4 h-4 text-gcore-orange" strokeWidth={1.8} />
             <span>Voice Console</span>
           </button>
 
           <button
             onClick={() => setIsManualBookingOpen(true)}
-            className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white font-medium text-xs px-4 py-2 rounded-apple transition-apple shadow-sm"
+            className="gcore-btn-orange px-4 py-2.5 text-xs flex items-center gap-2 shadow-gcore-btn"
           >
-            <PlusCircle className="w-4 h-4" strokeWidth={1.5} />
+            <PlusCircle className="w-4 h-4" strokeWidth={2} />
             <span>New Booking</span>
           </button>
         </div>
@@ -126,16 +131,16 @@ export default function DashboardOverviewPage() {
         {kpiCards.map((card) => (
           <div
             key={card.label}
-            className={`bg-white rounded-apple-lg shadow-card card-hover p-5 flex flex-col justify-between ${card.borderColor}`}
+            className={`gcore-card rounded-apple-xl p-5 flex flex-col justify-between ${card.borderColor}`}
           >
-            <span className="text-[11px] font-semibold text-surface-400 uppercase tracking-wider">{card.label}</span>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{card.label}</span>
             <div className="mt-2 mb-1">
-              <span className={`text-[28px] font-semibold tracking-apple ${card.accent}`}>
+              <span className={`text-[28px] font-bold tracking-tight ${card.accent}`}>
                 {card.value}{card.suffix}
               </span>
             </div>
-            <div className="flex items-center gap-1 text-xs font-medium">
-              {card.subIcon && <card.subIcon className={`w-3 h-3 ${card.subColor}`} strokeWidth={1.5} />}
+            <div className="flex items-center gap-1.5 text-xs font-medium pt-2 border-t border-white/[0.05]">
+              {card.subIcon && <card.subIcon className={`w-3.5 h-3.5 ${card.subColor}`} strokeWidth={1.8} />}
               <span className={card.subColor}>{card.sub}</span>
             </div>
           </div>
@@ -143,24 +148,26 @@ export default function DashboardOverviewPage() {
       </div>
 
       {/* Live Engine Banner */}
-      <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-purple-50/60 border border-blue-200/80 rounded-apple-lg shadow-card p-6 text-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 bg-white/80 border border-blue-200 text-primary-700 px-3 py-1 rounded-full text-xs font-medium mb-3 shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-primary-500" strokeWidth={1.5} />
-            <span>LiveKit + Supabase RLS + Cartesia</span>
+      <div className="gcore-card rounded-apple-xl p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-6 border border-gcore-orange/30 shadow-gcore-glow relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-gcore-orange/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="space-y-2 z-10">
+          <div className="inline-flex items-center gap-2 gcore-badge px-3 py-1 rounded-full text-xs font-medium">
+            <Sparkles className="w-3.5 h-3.5 text-gcore-orange" strokeWidth={2} />
+            <span>LiveKit · Groq LLaMA 3.3 · Cartesia Sonic · Supabase RLS</span>
           </div>
-          <h3 className="text-base font-semibold text-slate-950 tracking-apple">24/7 Autonomous AI Receptionist</h3>
-          <p className="text-xs text-slate-600 max-w-2xl mt-1 leading-relaxed">
-            Incoming calls to {activeClinic?.phone_number || '+91-80-4567-8901'} are handled automatically with zero manual intervention.
+          <h3 className="text-lg font-bold tracking-tight text-white">24/7 Autonomous Medical Voice Telephony</h3>
+          <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+            Inbound telephony to <strong className="text-orange-300 font-mono">{activeClinic?.phone_number || '+91-80-4567-8901'}</strong> routes to autonomous speech synthesis with instantaneous database locking.
           </p>
         </div>
 
         <button
           onClick={() => setIsPhoneSimulatorOpen(true)}
-          className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600 text-white font-medium text-xs px-5 py-2.5 rounded-apple transition-apple shadow-sm flex-shrink-0"
+          className="gcore-btn-orange px-6 py-3 text-xs font-semibold flex items-center gap-2 shadow-gcore-btn flex-shrink-0 z-10"
         >
-          <PhoneCall className="w-4 h-4" strokeWidth={1.5} />
-          <span>Simulate Call</span>
+          <PhoneCall className="w-4 h-4" strokeWidth={2} />
+          <span>Launch Phone Simulator</span>
         </button>
       </div>
     </div>

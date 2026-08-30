@@ -10,10 +10,9 @@ import {
   PhoneCall, 
   HelpCircle, 
   Cpu, 
-  PhoneForwarded,
-  Activity,
-  Settings,
-  Lock
+  Activity, 
+  Settings, 
+  Lock 
 } from 'lucide-react';
 
 const navItems = [
@@ -43,11 +42,11 @@ export function Sidebar() {
               href={item.href}
               className={`flex items-center gap-3 px-3.5 py-2.5 rounded-apple text-[13px] font-medium transition-apple ${
                 isActive
-                  ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30 shadow-glow-cyan'
+                  ? 'bg-gcore-orange/15 text-gcore-orange border border-gcore-orange/30 shadow-gcore-btn'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
               }`}
             >
-              <Icon className={`w-[17px] h-[17px] ${isActive ? 'text-sky-400' : 'text-slate-500'}`} strokeWidth={1.8} />
+              <Icon className={`w-[17px] h-[17px] ${isActive ? 'text-gcore-orange' : 'text-slate-500'}`} strokeWidth={1.8} />
               <span>{item.name}</span>
             </Link>
           );
@@ -56,10 +55,10 @@ export function Sidebar() {
 
       {/* Voice Pipeline Card */}
       <div className="mx-3 mt-6">
-        <div className="glass-panel rounded-apple-xl p-3.5 text-xs space-y-2.5 border border-white/[0.08]">
+        <div className="gcore-card rounded-apple-xl p-3.5 text-xs space-y-2.5 border border-white/[0.08]">
           <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
             <div className="flex items-center gap-1.5 text-slate-200 font-semibold text-[11px]">
-              <Activity className="w-3.5 h-3.5 text-sky-400" strokeWidth={2} />
+              <Activity className="w-3.5 h-3.5 text-gcore-orange" strokeWidth={2} />
               <span>Pipeline Status</span>
             </div>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -67,7 +66,7 @@ export function Sidebar() {
           <ul className="space-y-1.5 text-slate-400 font-mono text-[11px]">
             <li className="flex justify-between">
               <span className="text-slate-500">VAD</span>
-              <span className="text-slate-200 font-medium">Silero (Local)</span>
+              <span className="text-slate-200 font-medium">Silero Neural</span>
             </li>
             <li className="flex justify-between">
               <span className="text-slate-500">STT</span>
@@ -75,7 +74,7 @@ export function Sidebar() {
             </li>
             <li className="flex justify-between">
               <span className="text-slate-500">LLM</span>
-              <span className="text-sky-300 font-medium">Groq LLaMA 3.1</span>
+              <span className="text-orange-300 font-medium">Groq LLaMA 3.3</span>
             </li>
             <li className="flex justify-between">
               <span className="text-slate-500">TTS</span>
@@ -86,7 +85,7 @@ export function Sidebar() {
                 <Lock className="w-2.5 h-2.5 text-emerald-400" />
                 Concurrency
               </span>
-              <span className="text-emerald-400 font-semibold text-[10px]">ADVISORY LOCK</span>
+              <span className="text-emerald-400 font-semibold text-[10px]">ATOMIC LOCK</span>
             </li>
           </ul>
         </div>
