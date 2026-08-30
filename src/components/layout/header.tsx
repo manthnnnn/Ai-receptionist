@@ -16,7 +16,7 @@ export function Header() {
   } = useClinic();
 
   return (
-    <header className="bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.08]">
+    <header className="bg-black sticky top-0 z-40 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 border-b border-white/10">
       {/* Brand */}
       <div className="flex items-center gap-3">
         <Link href="/" className="flex items-center gap-2.5 group">
@@ -34,30 +34,30 @@ export function Header() {
 
       {/* Tenant Switcher */}
       <div className="flex items-center">
-        <div className="flex items-center gcore-card rounded-apple px-3.5 py-1.5 text-xs gap-2 transition-apple hover:border-gcore-orange/40">
+        <div className="flex items-center gcore-card rounded-apple px-3.5 py-1.5 text-xs gap-2 transition-apple hover:border-gcore-orange/40 bg-[#080808]">
           <Building2 className="w-3.5 h-3.5 text-gcore-orange" strokeWidth={1.8} />
           <select
             value={activeClinicId}
             onChange={(e) => setActiveClinicId(e.target.value)}
             aria-label="Select Clinic"
-            className="bg-transparent text-slate-200 font-medium focus:outline-none cursor-pointer pr-4 appearance-none text-[12px]"
+            className="bg-transparent text-white font-medium focus:outline-none cursor-pointer pr-4 appearance-none text-[12px]"
           >
             {clinics.map((c) => (
-              <option key={c.id} value={c.id} className="bg-slate-900 text-slate-100">
+              <option key={c.id} value={c.id} className="bg-black text-white">
                 {c.name}
               </option>
             ))}
           </select>
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400 -ml-2 pointer-events-none" strokeWidth={1.5} />
+          <ChevronDown className="w-3.5 h-3.5 text-neutral-400 -ml-2 pointer-events-none" strokeWidth={1.5} />
         </div>
       </div>
 
       {/* Actions */}
       <div className="flex items-center gap-3">
         {/* Latency Badge */}
-        <div className="hidden sm:flex items-center gap-2 gcore-card px-3 py-1 rounded-full text-[11px] text-slate-300">
-          <span className="status-dot bg-emerald-400 animate-pulse"></span>
-          <span>Latency <strong className="text-emerald-400 font-semibold font-mono">~575ms</strong></span>
+        <div className="hidden sm:flex items-center gap-2 gcore-card px-3 py-1 rounded-full text-[11px] text-neutral-300 bg-[#080808]">
+          <span className="status-dot bg-gcore-orange animate-pulse"></span>
+          <span>Latency <strong className="text-orange-300 font-semibold font-mono">~575ms</strong></span>
         </div>
 
         {/* PSTN Simulator */}
@@ -65,7 +65,7 @@ export function Header() {
           onClick={() => setIsPhoneSimulatorOpen(true)}
           className="gcore-btn-dark px-3.5 py-2 text-xs flex items-center gap-2"
         >
-          <PhoneCall className="w-3.5 h-3.5 text-amber-400" strokeWidth={1.8} />
+          <PhoneCall className="w-3.5 h-3.5 text-gcore-orange" strokeWidth={1.8} />
           <span>Simulate Call</span>
         </button>
 
