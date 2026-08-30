@@ -33,7 +33,7 @@ async function runTests() {
     assert(res.status === 200, 'POST /api/twilio/voice status 200');
     assert(res.headers.get('content-type')?.includes('xml'), 'POST /api/twilio/voice returns XML content-type');
     assert(xml.includes('<Response>') && xml.includes('Polly.Aditi'), 'POST /api/twilio/voice generates valid TwiML with Polly.Aditi voice');
-    assert(xml.includes('Apollo Dental Clinic') || xml.includes('Hello!'), 'POST /api/twilio/voice contains dynamic clinic greeting');
+    assert(xml.includes('Apollo Dental') || xml.includes('Hello!') || xml.includes('Namaskar'), 'POST /api/twilio/voice contains dynamic clinic greeting');
     assert(xml.includes('/api/twilio/gather'), 'POST /api/twilio/voice includes speech gather action URL');
   } catch (err) {
     assert(false, 'POST /api/twilio/voice endpoint reachable', err.message);

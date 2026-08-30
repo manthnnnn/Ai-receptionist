@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
       success: true,
       count: calls.length,
       calls,
+      data: calls,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

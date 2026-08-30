@@ -79,11 +79,13 @@ export default function CallsPage() {
     fetch(`/api/calls?clinic_id=${activeClinicId}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.success) setCalls(data.data);
+        if (data.success) setCalls(data.calls || data.data || []);
       })
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   }, [activeClinicId]);
+
+  const callList = Array.isArray(calls) ? calls : [];
 
   return (
     <div className="space-y-5 max-w-7xl mx-auto animate-fade-in">
@@ -120,14 +122,14 @@ export default function CallsPage() {
                     Loading call logs...
                   </td>
                 </tr>
-              ) : calls.length === 0 ? (
+              ) : callList.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-xs text-surface-400">
                     No calls recorded yet. Use the Simulator to place a test call.
                   </td>
                 </tr>
               ) : (
-                calls.map((c) => (
+                callList.map((c) => (
                   <tr key={c.id} className="hover:bg-surface-50 transition-apple">
                     <td className="py-3.5 px-5 text-xs text-surface-500">
                       {new Date(c.started_at || c.created_at).toLocaleTimeString('en-US', {
