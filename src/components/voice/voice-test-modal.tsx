@@ -180,13 +180,140 @@ export function VoiceTestModal() {
     }
   }, []);
 
+  // Production-grade Neural TTS: ElevenLabs → Google Neural → Best Browser Voice
+  const speakWithNeuralVoice = useCallback(async (
+    text: string,
+    lang: 'mr' | 'hi' | 'en',
+    onDone: () => void
+  ) => {
+    if (typeof window === 'undefined') return;
+
+    const cleanText = cleanSpeechText(text, lang);
+
+    // ── TIER 1: ElevenLabs Neural TTS via our backend API ──────────
+    try {
+      const ttsRes = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleanText, lang }),
+      });
+
+      if (ttsRes.ok && ttsRes.status === 200) {
+        const audioBlob = await ttsRes.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audio.playbackRate = 1.0;
+        
+        audio.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          setIsAiSpeaking(false);
+          onDone();
+        };
+        audio.onerror = () => {
+          URL.revokeObjectURL(audioUrl);
+          setIsAiSpeaking(false);
+          onDone();
+        };
+
+        setIsAiSpeaking(true);
+        await audio.play();
+        return;
+      }
+    } catch (err) {
+      // ElevenLabs unavailable — fall through to browser TTS
+    }
+
+    // ── TIER 2: Best Available Browser Neural Voice ─────────────────
+    if (!('speechSynthesis' in window)) { onDone(); return; }
+
+    window.speechSynthesis.cancel();
+    await new Promise(r => setTimeout(r, 60));
+
+    const voices = window.speechSynthesis.getVoices();
+    const utter = new SpeechSynthesisUtterance(cleanText);
+
+    // Voice priority cascade — prefer Google Neural/Natural voices
+    let voice: SpeechSynthesisVoice | null = null;
+
+    if (lang === 'mr') {
+      utter.lang = 'mr-IN';
+      voice =
+        voices.find(v => v.lang === 'mr-IN') ||
+        // Google Wavenet/Neural Indian voices
+        voices.find(v => v.name.includes('Google') && (v.lang.includes('hi-IN') || v.name.includes('Swara'))) ||
+        voices.find(v => v.name.includes('Microsoft') && v.lang.includes('hi-IN')) ||
+        voices.find(v => v.lang.includes('hi-IN')) ||
+        voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) ||
+        voices.find(v => v.name.includes('Samantha') || v.name.includes('Karen')) ||
+        null;
+    } else if (lang === 'hi') {
+      utter.lang = 'hi-IN';
+      voice =
+        voices.find(v => v.name.includes('Google') && v.lang === 'hi-IN') ||
+        voices.find(v => v.name === 'Swara' || v.name.includes('Swara')) ||
+        voices.find(v => v.lang === 'hi-IN') ||
+        voices.find(v => v.name.includes('Microsoft') && v.lang.includes('hi')) ||
+        voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) ||
+        null;
+    } else {
+      utter.lang = 'en-IN';
+      voice =
+        // Top-tier: Google Neural en-IN (Neerja, Ravi, etc.)
+        voices.find(v => v.name.includes('Google') && v.lang === 'en-IN') ||
+        voices.find(v => v.name.includes('Neerja') || v.name.includes('Ravi')) ||
+        // MacOS neural voices
+        voices.find(v => v.name === 'Samantha' || v.name === 'Karen' || v.name === 'Moira') ||
+        // Any Google Neural English
+        voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) ||
+        voices.find(v => v.lang.startsWith('en') && v.localService === false) || // Remote = higher quality
+        voices.find(v => v.lang.startsWith('en')) ||
+        null;
+    }
+
+    if (voice) utter.voice = voice;
+
+    // Emotional prosody tuning — natural conversational cadence like ChatGPT
+    // Slightly faster, higher pitch = warm, energetic, empathetic
+    utter.rate  = lang === 'en' ? 1.08 : lang === 'hi' ? 1.02 : 1.0;
+    utter.pitch = lang === 'en' ? 1.10 : lang === 'hi' ? 1.06 : 1.04;
+    utter.volume = 1.0;
+
+    setIsAiSpeaking(true);
+
+    utter.onend = () => { setIsAiSpeaking(false); onDone(); };
+    utter.onerror = () => { setIsAiSpeaking(false); onDone(); };
+
+    window.speechSynthesis.speak(utter);
+
+    // Chrome TTS watchdog — Chrome sometimes hangs on long utterances
+    const watchdog = setInterval(() => {
+      if (!window.speechSynthesis.speaking) {
+        clearInterval(watchdog);
+      } else {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }
+    }, 12000);
+
+    utter.onend = () => {
+      clearInterval(watchdog);
+      setIsAiSpeaking(false);
+      onDone();
+    };
+    utter.onerror = () => {
+      clearInterval(watchdog);
+      setIsAiSpeaking(false);
+      onDone();
+    };
+  }, []);
+
   // Send turn to backend & handle emotional vocal speech response
   const sendTurn = async (userText: string) => {
     if (!userText.trim()) return;
 
     const userTurn: DialogTurn = { id: `usr-${Date.now()}`, speaker: 'caller', text: userText };
     setDialog((prev) => [...prev, userTurn]);
-    setStatusText('AI विचारात आहे...');
+    setStatusText('AI thinking...');
 
     try {
       const groqKey = typeof window !== 'undefined' ? localStorage.getItem('CLINIC_GROQ_API_KEY') || undefined : undefined;
@@ -218,69 +345,11 @@ export function VoiceTestModal() {
         setDialog((prev) => [...prev, aiTurn]);
         setStatusText('Ready');
 
-        // Play synthetic speech with emotive natural voice
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          setIsAiSpeaking(true);
-
-          const spokenText = cleanSpeechText(data.reply, turnLang);
-          const utter = new SpeechSynthesisUtterance(spokenText);
-          
-          // Lively human conversational cadence
-          utter.rate = 1.04;
-          utter.pitch = 1.06;
-
-          const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
-          let selectedVoice = null;
-
-          if (turnLang === 'mr') {
-            utter.lang = 'mr-IN';
-            selectedVoice =
-              voices.find((v) => v.name.toLowerCase().includes('marathi') || v.lang.includes('mr')) ||
-              voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
-              voices.find((v) => v.name.includes('Natural') && (v.lang.includes('en-IN') || v.name.includes('Neerja'))) ||
-              voices.find((v) => v.lang.includes('hi') || v.name.includes('Heera')) ||
-              voices.find((v) => v.lang.includes('en-IN') || v.name.includes('India'));
-          } else if (turnLang === 'hi') {
-            utter.lang = 'hi-IN';
-            selectedVoice =
-              voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
-              voices.find((v) => v.lang.includes('hi') || v.name.toLowerCase().includes('hindi') || v.name.includes('Heera')) ||
-              voices.find((v) => v.name.includes('Natural') && v.lang.includes('en-IN')) ||
-              voices.find((v) => v.lang.includes('en-IN') || v.name.includes('India'));
-          } else {
-            utter.lang = 'en-IN';
-            selectedVoice =
-              voices.find((v) => v.name.includes('Natural') && (v.lang.includes('en-IN') || v.name.includes('Neerja') || v.name.includes('Prabhat'))) ||
-              voices.find((v) => v.lang.includes('en-IN') || v.name.includes('India') || v.name.includes('Neerja') || v.name.includes('Ravi')) ||
-              voices.find((v) => v.lang.startsWith('en'));
+        await speakWithNeuralVoice(data.reply, turnLang, () => {
+          if (isHandsFreeRef.current) {
+            setTimeout(() => startListening(), 350);
           }
-
-          if (selectedVoice) {
-            utter.voice = selectedVoice;
-          }
-
-          // When AI finishes speaking, seamlessly restart listening in Hands-Free Mode!
-          utter.onend = () => {
-            setIsAiSpeaking(false);
-            if (isHandsFreeRef.current) {
-              setTimeout(() => {
-                startListening();
-              }, 400);
-            }
-          };
-
-          utter.onerror = () => {
-            setIsAiSpeaking(false);
-            if (isHandsFreeRef.current) {
-              setTimeout(() => {
-                startListening();
-              }, 400);
-            }
-          };
-
-          window.speechSynthesis.speak(utter);
-        }
+        });
 
         if (data.tool_called === 'book_appointment' || data.tool_called === 'cancel_appointment') {
           refreshData();
