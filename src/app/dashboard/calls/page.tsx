@@ -72,71 +72,67 @@ function DialogueBubble({ turn }: { turn: DialogueTurn }) {
 export default function CallsPage() {
   const { activeClinicId } = useClinic();
   const [calls, setCalls] = useState<CallLog[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCall, setSelectedCall] = useState<CallLog | null>(null);
 
   useEffect(() => {
     fetch(`/api/calls?clinic_id=${activeClinicId}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.success) {
-          setCalls(data.calls || []);
-        }
+        if (data.success) setCalls(data.data);
       })
-      .catch((err) => console.error(err));
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
   }, [activeClinicId]);
 
   return (
     <div className="space-y-5 max-w-7xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="bg-white rounded-apple-lg shadow-card p-5 flex items-center justify-between">
+      <div className="bg-white rounded-apple-lg shadow-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-lg font-semibold text-surface-900 tracking-apple">Call Logs & Dialogue Analytics</h1>
+          <h1 className="text-lg font-semibold text-surface-900 tracking-apple">Call Logs</h1>
           <p className="text-xs text-surface-400 mt-0.5 font-medium">
-            Full turn-by-turn dialogue, AI latency per turn, and detected language
+            PSTN inbound telephony recordings, transcripts &amp; telemetry
           </p>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-surface-400 bg-surface-50 px-3 py-1.5 rounded-full border border-surface-200">
-          <Phone className="w-3.5 h-3.5" />
-          <span>{calls.length} calls</span>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table Card */}
       <div className="bg-white rounded-apple-lg shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-surface-100 text-[11px] font-medium text-surface-400 uppercase tracking-wider">
-                <th className="py-3.5 px-5 font-medium">Time</th>
-                <th className="py-3.5 px-4 font-medium">Caller</th>
-                <th className="py-3.5 px-4 font-medium">Duration</th>
-                <th className="py-3.5 px-4 font-medium">Intent</th>
-                <th className="py-3.5 px-4 font-medium">Latency</th>
-                <th className="py-3.5 px-4 font-medium">Lang</th>
-                <th className="py-3.5 px-4 font-medium">Outcome</th>
-                <th className="py-3.5 px-5 text-right font-medium">Details</th>
+              <tr className="border-b border-surface-100 bg-surface-50 text-[11px] font-semibold text-surface-400 uppercase tracking-wider">
+                <th className="py-3 px-5">Time</th>
+                <th className="py-3 px-4">Caller Phone</th>
+                <th className="py-3 px-4">Duration</th>
+                <th className="py-3 px-4">Intent</th>
+                <th className="py-3 px-4">Latency</th>
+                <th className="py-3 px-4">Lang</th>
+                <th className="py-3 px-4">Outcome</th>
+                <th className="py-3 px-5 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="text-[13px]">
-              {calls.length === 0 ? (
+            <tbody className="divide-y divide-surface-100">
+              {loading ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-xs text-surface-400">
-                    No call records yet.
+                    Loading call logs...
+                  </td>
+                </tr>
+              ) : calls.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-xs text-surface-400">
+                    No calls recorded yet. Use the Simulator to place a test call.
                   </td>
                 </tr>
               ) : (
-                calls.map((c, idx) => (
-                  <tr
-                    key={c.id}
-                    className={`border-b border-surface-50 hover:bg-primary-50/30 transition-apple ${
-                      idx % 2 === 1 ? 'bg-surface-50/40' : ''
-                    }`}
-                  >
+                calls.map((c) => (
+                  <tr key={c.id} className="hover:bg-surface-50 transition-apple">
                     <td className="py-3.5 px-5 text-xs text-surface-500">
-                      {new Date(c.started_at).toLocaleTimeString('en-US', {
+                      {new Date(c.started_at || c.created_at).toLocaleTimeString('en-US', {
                         hour: '2-digit',
                         minute: '2-digit',
-                        hour12: true,
                       })}
                     </td>
                     <td className="py-3.5 px-4 text-xs font-mono text-surface-700 font-medium">
@@ -203,7 +199,7 @@ export default function CallsPage() {
             <div className="px-6 py-4 border-b border-surface-100 flex items-center justify-between shrink-0">
               <div>
                 <h3 className="font-semibold text-surface-900 text-[15px] tracking-apple">
-                  Call Dialogue & Analytics
+                  Call Dialogue &amp; Analytics
                 </h3>
                 <p className="text-xs text-surface-400 font-mono mt-0.5">{selectedCall.caller_phone}</p>
               </div>
@@ -257,17 +253,17 @@ export default function CallsPage() {
                   ))}
                 </div>
               ) : (
-                // Fallback: show transcript preview as a static dialogue pair
-                <div className="bg-surface-900 text-surface-200 p-4 rounded-apple-lg space-y-3 font-mono text-[11px] leading-relaxed">
+                // Fallback: show transcript preview as a soft styled dialogue box
+                <div className="bg-slate-50 border border-slate-200 text-slate-800 p-4 rounded-apple-lg space-y-3 font-mono text-[11px] leading-relaxed shadow-xs">
                   <p>
-                    <strong className="text-primary-400">AI:</strong> Hello! Thank you for calling. How can I assist you today?
+                    <strong className="text-primary-600">AI:</strong> Hello! Thank you for calling. How can I assist you today?
                   </p>
                   <p>
-                    <strong className="text-amber-400">Caller:</strong>{' '}
+                    <strong className="text-amber-700">Caller:</strong>{' '}
                     {selectedCall.transcript_preview || 'General inquiry about the clinic.'}
                   </p>
                   <p>
-                    <strong className="text-primary-400">AI:</strong>{' '}
+                    <strong className="text-primary-600">AI:</strong>{' '}
                     {selectedCall.outcome === 'BOOKED'
                       ? 'Your appointment has been confirmed. A confirmation SMS has been sent.'
                       : 'Our general consultation fee is ₹500. Specialists are ₹750–₹800.'}
@@ -279,7 +275,7 @@ export default function CallsPage() {
             <div className="px-6 pb-5 shrink-0 flex justify-end">
               <button
                 onClick={() => setSelectedCall(null)}
-                className="bg-surface-900 hover:bg-surface-800 text-white px-4 py-2 rounded-apple text-xs font-medium transition-apple"
+                className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-apple text-xs font-medium transition-apple shadow-xs"
               >
                 Close
               </button>

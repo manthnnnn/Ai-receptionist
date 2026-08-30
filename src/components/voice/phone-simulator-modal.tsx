@@ -148,43 +148,43 @@ export function PhoneSimulatorModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-surface-900 w-full max-w-md rounded-apple-xl shadow-modal overflow-hidden flex flex-col max-h-[92vh] animate-scale-in">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-white border border-slate-200/90 w-full max-w-md rounded-apple-xl shadow-modal overflow-hidden flex flex-col max-h-[92vh] animate-scale-in">
         {/* Header */}
-        <div className="px-6 py-4 bg-surface-950 border-b border-white/5 flex items-center justify-between">
+        <div className="px-6 py-4 bg-slate-50/90 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-apple bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <div className="w-9 h-9 rounded-apple bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-600 shadow-xs">
               <Phone className="w-4 h-4" strokeWidth={1.5} />
             </div>
             <div>
-              <h3 className="font-semibold text-white text-[15px] tracking-apple">Inbound Phone Call</h3>
-              <p className="text-xs text-surface-400">PSTN · Multilingual AI</p>
+              <h3 className="font-semibold text-slate-900 text-[15px] tracking-apple">Inbound Phone Call</h3>
+              <p className="text-xs text-slate-500">PSTN · Multilingual AI</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {/* Language Toggle */}
-            <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-0.5 text-xs">
+            <div className="flex items-center bg-slate-100 border border-slate-200 rounded-lg p-0.5 text-xs">
               <button
                 onClick={() => setSelectedLang('en')}
-                className={`px-2 py-0.5 rounded transition-apple text-[11px] ${
-                  selectedLang === 'en' ? 'bg-primary-500 text-white font-medium' : 'text-surface-400'
+                className={`px-2 py-0.5 rounded transition-apple text-[11px] font-medium ${
+                  selectedLang === 'en' ? 'bg-white text-primary-600 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 EN
               </button>
               <button
                 onClick={() => setSelectedLang('hi')}
-                className={`px-2 py-0.5 rounded transition-apple text-[11px] ${
-                  selectedLang === 'hi' ? 'bg-primary-500 text-white font-medium' : 'text-surface-400'
+                className={`px-2 py-0.5 rounded transition-apple text-[11px] font-medium ${
+                  selectedLang === 'hi' ? 'bg-white text-primary-600 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 हिं
               </button>
               <button
                 onClick={() => setSelectedLang('mr')}
-                className={`px-2 py-0.5 rounded transition-apple text-[11px] ${
-                  selectedLang === 'mr' ? 'bg-primary-500 text-white font-medium' : 'text-surface-400'
+                className={`px-2 py-0.5 rounded transition-apple text-[11px] font-medium ${
+                  selectedLang === 'mr' ? 'bg-white text-primary-600 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 मरा
@@ -193,7 +193,7 @@ export function PhoneSimulatorModal() {
 
             <button
               onClick={() => setIsPhoneSimulatorOpen(false)}
-              className="text-surface-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-apple ml-1"
+              className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-apple ml-1"
             >
               <X className="w-5 h-5" strokeWidth={1.5} />
             </button>
@@ -201,24 +201,24 @@ export function PhoneSimulatorModal() {
         </div>
 
         {/* Call Card */}
-        <div className="p-6 bg-surface-900 flex flex-col items-center text-center border-b border-white/5">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white shadow-lg live-pulse mb-3">
+        <div className="p-6 bg-slate-50/70 flex flex-col items-center text-center border-b border-slate-200">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white shadow-md live-pulse mb-3">
             <Phone className="w-7 h-7" strokeWidth={1.5} />
           </div>
 
-          <h4 className="font-semibold text-base text-white tracking-apple">{activeClinic?.name || 'Apollo Dental Clinic'}</h4>
-          <p className="text-xs text-surface-400 font-mono mt-0.5">
+          <h4 className="font-semibold text-base text-slate-900 tracking-apple">{activeClinic?.name || 'Apollo Dental Clinic'}</h4>
+          <p className="text-xs text-slate-500 font-mono mt-0.5">
             {activeClinic?.phone_number || '+91-80-4567-8901'}
           </p>
 
-          <div className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400">
-            <span className="status-dot bg-emerald-400"></span>
-            Connected · AI Speaking in {selectedLang === 'mr' ? 'मराठी (Marathi)' : selectedLang === 'hi' ? 'हिंदी (Hindi)' : 'English'}
+          <div className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full shadow-xs">
+            <span className="status-dot bg-emerald-500"></span>
+            Connected · AI Speaking in {selectedLang === 'mr' ? 'मराठी' : selectedLang === 'hi' ? 'हिंदी' : 'English'}
           </div>
         </div>
 
         {/* Messages */}
-        <div className="p-4 flex-1 overflow-y-auto space-y-2.5 max-h-56">
+        <div className="p-4 flex-1 overflow-y-auto space-y-2.5 max-h-56 bg-slate-50/30">
           {messages.map((m, idx) => (
             <div
               key={idx}
@@ -227,13 +227,13 @@ export function PhoneSimulatorModal() {
               <div
                 className={`max-w-[85%] rounded-[18px] px-4 py-2.5 text-[13px] ${
                   m.speaker === 'user'
-                    ? 'bg-primary-500 text-white rounded-br-md'
-                    : 'bg-surface-800 text-surface-100 rounded-bl-md'
+                    ? 'bg-primary-500 text-white rounded-br-md shadow-xs'
+                    : 'bg-white text-slate-800 border border-slate-200/90 rounded-bl-md shadow-xs'
                 }`}
               >
                 <p className="leading-relaxed">{m.text}</p>
               </div>
-              <span className="text-[10px] text-surface-500 mt-1 px-1">
+              <span className="text-[10px] text-slate-400 mt-1 px-1">
                 {m.speaker === 'user' ? 'Caller' : 'AI Receptionist'}
               </span>
             </div>
@@ -241,13 +241,13 @@ export function PhoneSimulatorModal() {
         </div>
 
         {/* Quick Replies */}
-        <div className="px-4 py-3 bg-surface-950/80 border-t border-white/5">
+        <div className="px-4 py-3 bg-slate-50/80 border-t border-slate-200">
           <div className="flex flex-wrap gap-1.5">
             {quickPromptsByLang[selectedLang].map((chip) => (
               <button
                 key={chip}
                 onClick={() => handleSpeak(chip)}
-                className="bg-white/5 hover:bg-primary-500/15 text-surface-300 hover:text-primary-300 border border-white/8 hover:border-primary-500/25 rounded-full px-3 py-1 text-[11px] font-medium transition-apple"
+                className="bg-white hover:bg-primary-50 text-slate-700 hover:text-primary-600 border border-slate-200 hover:border-primary-300 rounded-full px-3 py-1 text-[11px] font-medium transition-apple shadow-xs"
               >
                 {chip}
               </button>
@@ -256,13 +256,13 @@ export function PhoneSimulatorModal() {
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-surface-950 border-t border-white/5 flex gap-2.5">
+        <div className="p-4 bg-slate-50 border-t border-slate-200 flex gap-2.5">
           <button
             onClick={handleMicClick}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-apple text-[13px] font-medium transition-apple ${
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-apple text-[13px] font-medium transition-apple shadow-sm ${
               isRecording
                 ? 'bg-amber-500 text-white animate-pulse'
-                : 'bg-primary-500 hover:bg-primary-600 text-white shadow-sm'
+                : 'bg-primary-500 hover:bg-primary-600 text-white'
             }`}
           >
             {isRecording ? <MicOff className="w-4 h-4" strokeWidth={1.5} /> : <Mic className="w-4 h-4" strokeWidth={1.5} />}
@@ -271,7 +271,7 @@ export function PhoneSimulatorModal() {
 
           <button
             onClick={() => setIsPhoneSimulatorOpen(false)}
-            className="flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white py-2.5 px-5 rounded-apple text-[13px] font-medium transition-apple"
+            className="flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white py-2.5 px-5 rounded-apple text-[13px] font-medium transition-apple shadow-sm"
           >
             <PhoneOff className="w-4 h-4" strokeWidth={1.5} />
             <span>End</span>

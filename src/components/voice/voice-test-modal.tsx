@@ -102,11 +102,11 @@ export function VoiceTestModal() {
         ctx.roundRect(x, y, barWidth, height, radius);
 
         if (isRecording) {
-          ctx.fillStyle = `rgba(59, 130, 246, ${0.4 + Math.sin(Date.now() / 200 + i) * 0.3})`;
+          ctx.fillStyle = `rgba(59, 130, 246, ${0.7 + Math.sin(Date.now() / 200 + i) * 0.3})`;
         } else if (isAiSpeaking) {
-          ctx.fillStyle = `rgba(34, 197, 94, ${0.4 + Math.sin(Date.now() / 200 + i) * 0.3})`;
+          ctx.fillStyle = `rgba(34, 197, 94, ${0.7 + Math.sin(Date.now() / 200 + i) * 0.3})`;
         } else {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+          ctx.fillStyle = 'rgba(203, 213, 225, 0.8)';
         }
         ctx.fill();
       }
@@ -269,27 +269,27 @@ export function VoiceTestModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-surface-900 w-full max-w-2xl rounded-apple-xl shadow-modal overflow-hidden flex flex-col max-h-[90vh] animate-scale-in">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-white border border-slate-200/90 w-full max-w-2xl rounded-apple-xl shadow-modal overflow-hidden flex flex-col max-h-[90vh] animate-scale-in">
         {/* Header */}
-        <div className="px-6 py-4 bg-surface-950 border-b border-white/5 flex items-center justify-between">
+        <div className="px-6 py-4 bg-slate-50/90 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-apple bg-primary-500/15 border border-primary-500/20 flex items-center justify-center text-primary-400">
+            <div className="w-9 h-9 rounded-apple bg-primary-50 border border-primary-200/80 flex items-center justify-center text-primary-600 shadow-xs">
               <Mic className="w-4 h-4" strokeWidth={1.5} />
             </div>
             <div>
-              <h3 className="font-semibold text-white text-[15px] tracking-apple">Multilingual Voice Console</h3>
-              <p className="text-xs text-surface-400">English · हिंदी · मराठी Clean Voice</p>
+              <h3 className="font-semibold text-slate-900 text-[15px] tracking-apple">Multilingual Voice Console</h3>
+              <p className="text-xs text-slate-500">English · हिंदी · मराठी Clean Audio</p>
             </div>
           </div>
 
           {/* Language Selector */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-0.5 text-xs">
+            <div className="flex items-center bg-slate-100 border border-slate-200 rounded-lg p-0.5 text-xs">
               <button
                 onClick={() => setSelectedLang('en')}
                 className={`px-2.5 py-1 rounded-md transition-apple font-medium ${
-                  selectedLang === 'en' ? 'bg-primary-500 text-white shadow-sm' : 'text-surface-400 hover:text-white'
+                  selectedLang === 'en' ? 'bg-white text-primary-600 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 English
@@ -297,7 +297,7 @@ export function VoiceTestModal() {
               <button
                 onClick={() => setSelectedLang('hi')}
                 className={`px-2.5 py-1 rounded-md transition-apple font-medium ${
-                  selectedLang === 'hi' ? 'bg-primary-500 text-white shadow-sm' : 'text-surface-400 hover:text-white'
+                  selectedLang === 'hi' ? 'bg-white text-primary-600 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 हिंदी
@@ -305,7 +305,7 @@ export function VoiceTestModal() {
               <button
                 onClick={() => setSelectedLang('mr')}
                 className={`px-2.5 py-1 rounded-md transition-apple font-medium ${
-                  selectedLang === 'mr' ? 'bg-primary-500 text-white shadow-sm' : 'text-surface-400 hover:text-white'
+                  selectedLang === 'mr' ? 'bg-white text-primary-600 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 मराठी
@@ -314,7 +314,7 @@ export function VoiceTestModal() {
 
             <button
               onClick={() => setIsVoiceTesterOpen(false)}
-              className="text-surface-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-apple ml-2"
+              className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-apple ml-2"
             >
               <X className="w-5 h-5" strokeWidth={1.5} />
             </button>
@@ -322,17 +322,17 @@ export function VoiceTestModal() {
         </div>
 
         {/* Waveform */}
-        <div className="p-4 bg-surface-950/60 border-b border-white/5">
-          <div className="bg-surface-950 border border-white/5 rounded-apple-lg p-3 flex flex-col gap-2">
+        <div className="p-4 bg-slate-50/50 border-b border-slate-200">
+          <div className="bg-white border border-slate-200 rounded-apple-lg p-3 flex flex-col gap-2 shadow-xs">
             <div className="flex items-center justify-between text-xs">
-              <span className="flex items-center gap-1.5 text-surface-400 font-medium">
-                <Volume2 className="w-3.5 h-3.5 text-primary-400" strokeWidth={1.5} />
-                Live Audio Stream ({selectedLang === 'mr' ? 'Marathi' : selectedLang === 'hi' ? 'Hindi' : 'English'})
+              <span className="flex items-center gap-1.5 text-slate-600 font-medium">
+                <Volume2 className="w-3.5 h-3.5 text-primary-500" strokeWidth={1.5} />
+                Audio Stream ({selectedLang === 'mr' ? 'Marathi' : selectedLang === 'hi' ? 'Hindi' : 'English'})
               </span>
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
-                isRecording ? 'bg-primary-500/15 text-primary-300 border border-primary-500/20' :
-                isAiSpeaking ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20' :
-                'bg-white/5 text-surface-400 border border-white/10'
+                isRecording ? 'bg-primary-50 text-primary-700 border border-primary-200' :
+                isAiSpeaking ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                'bg-slate-100 text-slate-600 border border-slate-200'
               }`}>
                 {isRecording ? '● Listening' : isAiSpeaking ? '● Speaking' : statusText}
               </span>
@@ -342,18 +342,18 @@ export function VoiceTestModal() {
         </div>
 
         {/* Latency Bar */}
-        <div className="px-6 py-2 bg-surface-950/40 border-b border-white/5 flex items-center justify-between text-xs text-surface-400 font-medium">
+        <div className="px-6 py-2 bg-slate-50/60 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600 font-medium">
           <span className="flex items-center gap-1.5">
-            <Zap className="w-3 h-3 text-primary-400" strokeWidth={1.5} />
+            <Zap className="w-3 h-3 text-primary-500" strokeWidth={1.5} />
             Conversation Dialogue
           </span>
-          <span className="text-[11px] font-mono text-surface-500">
+          <span className="text-[11px] font-mono text-slate-500">
             Auto-Detect: English · हिंदी · मराठी | Sub-600ms
           </span>
         </div>
 
         {/* Dialog */}
-        <div className="p-5 flex-1 overflow-y-auto space-y-3 max-h-72">
+        <div className="p-5 flex-1 overflow-y-auto space-y-3 max-h-72 bg-slate-50/30">
           {dialog.map((turn) => (
             <div
               key={turn.id}
@@ -362,8 +362,8 @@ export function VoiceTestModal() {
               <div
                 className={`max-w-[82%] rounded-[18px] px-4 py-2.5 text-[13px] ${
                   turn.speaker === 'caller'
-                    ? 'bg-primary-500 text-white rounded-br-md'
-                    : 'bg-surface-800 text-surface-100 rounded-bl-md'
+                    ? 'bg-primary-500 text-white rounded-br-md shadow-xs'
+                    : 'bg-white text-slate-800 border border-slate-200/90 rounded-bl-md shadow-xs'
                 }`}
               >
                 <p className="leading-relaxed">{turn.text}</p>
@@ -374,7 +374,7 @@ export function VoiceTestModal() {
                   </div>
                 )}
               </div>
-              <span className="text-[10px] text-surface-500 mt-1 px-1">
+              <span className="text-[10px] text-slate-400 mt-1 px-1">
                 {turn.speaker === 'caller' ? 'Caller' : 'AI Receptionist'}
               </span>
             </div>
@@ -382,14 +382,14 @@ export function VoiceTestModal() {
         </div>
 
         {/* Quick Prompts by Language */}
-        <div className="px-5 py-3 bg-surface-950/80 border-t border-white/5">
-          <p className="text-[11px] text-surface-400 mb-1.5">Click or speak prompt in {selectedLang === 'mr' ? 'मराठी' : selectedLang === 'hi' ? 'हिंदी' : 'English'}:</p>
+        <div className="px-5 py-3 bg-slate-50/80 border-t border-slate-200">
+          <p className="text-[11px] text-slate-500 mb-1.5">Click or speak prompt in {selectedLang === 'mr' ? 'मराठी' : selectedLang === 'hi' ? 'हिंदी' : 'English'}:</p>
           <div className="flex flex-wrap gap-1.5">
             {quickPromptsByLang[selectedLang].map((prompt) => (
               <button
                 key={prompt}
                 onClick={() => sendTurn(prompt)}
-                className="bg-white/5 hover:bg-primary-500/15 text-surface-300 hover:text-primary-300 border border-white/8 hover:border-primary-500/25 rounded-full px-3 py-1.5 text-[11px] font-medium transition-apple"
+                className="bg-white hover:bg-primary-50 text-slate-700 hover:text-primary-600 border border-slate-200 hover:border-primary-300 rounded-full px-3 py-1 text-[11px] font-medium transition-apple shadow-xs"
               >
                 {prompt}
               </button>
@@ -398,19 +398,19 @@ export function VoiceTestModal() {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 bg-surface-950 border-t border-white/5 flex items-center justify-between">
+        <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
           <button
             onClick={() => setIsVoiceTesterOpen(false)}
-            className="px-4 py-2 rounded-apple text-xs font-medium text-surface-400 hover:text-white hover:bg-white/5 transition-apple"
+            className="px-4 py-2 rounded-apple text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-apple"
           >
             Close Console
           </button>
           <button
             onClick={handleToggleMic}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-apple text-xs font-medium transition-apple ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-apple text-xs font-medium transition-apple shadow-sm ${
               isRecording
                 ? 'bg-rose-500 hover:bg-rose-600 text-white'
-                : 'bg-primary-500 hover:bg-primary-600 text-white shadow-sm'
+                : 'bg-primary-500 hover:bg-primary-600 text-white'
             }`}
           >
             {isRecording ? <MicOff className="w-4 h-4" strokeWidth={1.5} /> : <Mic className="w-4 h-4" strokeWidth={1.5} />}
