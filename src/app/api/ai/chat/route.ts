@@ -4,7 +4,7 @@ import { processReceptionistTurn } from '@/lib/ai/orchestrator';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { clinic_id, message, history, caller_phone, groq_api_key, openai_api_key } = body;
+    const { clinic_id, message, history, caller_phone, groq_api_key, openai_api_key, language } = body;
 
     if (!message) {
       return NextResponse.json({ success: false, error: 'Message is required' }, { status: 400 });
@@ -19,7 +19,8 @@ export async function POST(req: NextRequest) {
       history || [],
       callerPhone,
       groq_api_key,
-      openai_api_key
+      openai_api_key,
+      language
     );
 
     return NextResponse.json({

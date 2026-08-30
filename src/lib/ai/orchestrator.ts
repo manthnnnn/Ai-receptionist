@@ -19,22 +19,41 @@ export interface OrchestratorResult {
   call_outcome?: string;
 }
 
-// Detect language of incoming utterance
-function detectLanguage(text: string): 'mr' | 'hi' | 'en' {
-  // Marathi specific markers (Devanagari or Romanized)
-  const marathiRegex = /[\u0900-\u097F]*(आहे|नाही|कधी|करायची|भेट|वेळ|किती|पाहिजे|उद्या|सांगा|माझं|माझे|मला|आमचे|करावी|येईल|होय|शुल्क|दवाखाना|रुग्ण)[\u0900-\u097F]*/i;
-  const marathiRoman = /\b(namaskar|ahe|nahi|kadhi|karaychi|bhet|vel|kiti|pahije|udya|shulka|sanga|majh|majhe|nav|kara|madhe|mala|davakhana)\b/i;
+// Detect language of incoming utterance with comprehensive Marathi/Hindi/English markers
+function detectLanguage(text: string, clientHint?: 'mr' | 'hi' | 'en'): 'mr' | 'hi' | 'en' {
+  const lower = text.toLowerCase();
 
-  if (marathiRegex.test(text) || marathiRoman.test(text)) {
+  // Explicit Language Switch Requests
+  if (lower.includes('marathi') || lower.includes('मराठी') || lower.includes('मराठीत') || lower.includes('मराठीमध्ये') || lower.includes('मराठी बोला')) {
+    return 'mr';
+  }
+  if (lower.includes('hindi') || lower.includes('हिंदी') || lower.includes('हिंदी में')) {
+    return 'hi';
+  }
+  if (lower.includes('english') || lower.includes('इंग्रजी') || lower.includes('अंग्रेजी') || lower.includes('speak in english')) {
+    return 'en';
+  }
+
+  // Marathi specific vocabulary & grammar markers (Devanagari)
+  const marathiRegex = /[\u0900-\u097F]*(मराठी|बोला|सांगा|आहे|नाही|कधी|करायची|भेट|वेळ|किती|पाहिजे|उद्या|परवा|सकाळी|दुपारी|संध्याकाळी|रात्री|माझं|माझे|मला|आमचे|करावी|येईल|होय|शुल्क|दवाखाना|रुग्ण|घ्यायची|द्या|करा|कसं|कसा|कशी|चालेल|दुखतोय|दुखतंय|दात|कळ|नक्की|नक्कीच|काय|हवं|हवी|आहात|पडताळणी|तपासणी|उपचार)[\u0900-\u097F]*/i;
+  // Romanized Marathi
+  const marathiRoman = /\b(marathi|marathit|marathimadhe|namaskar|ahe|nahi|kadhi|karaychi|bhet|vel|kiti|pahije|udya|parwa|shulka|sanga|majh|majhe|nav|kara|madhe|mala|davakhana|dukhtoy|dat|nakki|kay|kasa|kashi|havi|hav|chala|ho|chalel|tapasni)\b/i;
+
+  if (marathiRegex.test(text) || marathiRoman.test(lower)) {
     return 'mr';
   }
 
   // Hindi specific markers (Devanagari or Romanized)
-  const hindiRegex = /[\u0900-\u097F]*(है|हूँ|नमस्ते|कल|समय|कितना|कितनी|चाहिए|करना|कृपया|बताइए|बताओ|मुझे|मेरा|मेरी|हमारा|होगी|सकता|अस्पताल|इलाज)[\u0900-\u097F]*/i;
-  const hindiRoman = /\b(namaste|hai|hoon|kal|samay|fees|kitna|kitni|chahiye|karna|kripya|bataiye|mujhe|mera|karein|aapse|batayein|ilaaj)\b/i;
+  const hindiRegex = /[\u0900-\u097F]*(है|हूँ|नमस्ते|कल|समय|कितना|कितनी|चाहिए|करना|कृपया|बताइए|बताओ|मुझे|मेरा|मेरी|हमारा|होगी|सकता|अस्पताल|इलाज|दर्द|दांत|जांच|दवा)[\u0900-\u097F]*/i;
+  const hindiRoman = /\b(namaste|hai|hoon|kal|samay|fees|kitna|kitni|chahiye|karna|kripya|bataiye|mujhe|mera|karein|aapse|batayein|ilaaj|dard|daant)\b/i;
 
-  if (hindiRegex.test(text) || hindiRoman.test(text)) {
+  if (hindiRegex.test(text) || hindiRoman.test(lower)) {
     return 'hi';
+  }
+
+  // If client passed a hint and no contradicting language was detected, trust the client
+  if (clientHint) {
+    return clientHint;
   }
 
   if (/[\u0900-\u097F]/.test(text)) {
@@ -60,7 +79,6 @@ async function tryLiveLlmCall(
   const endpoint = isGroq
     ? 'https://api.groq.com/openai/v1/chat/completions'
     : 'https://api.openai.com/v1/chat/completions';
-  const model = isGroq ? 'llama-3.3-70b-versatile' : 'gpt-4o-mini';
 
   if (!apiKey) return null;
 
@@ -78,7 +96,7 @@ async function tryLiveLlmCall(
     }));
     const faqs = localStore.getClinicFAQs(clinicId);
 
-    const systemPrompt = buildSystemPrompt(
+    const basePrompt = buildSystemPrompt(
       clinicName,
       clinicAddress,
       clinicPhone,
@@ -87,6 +105,18 @@ async function tryLiveLlmCall(
       'Tomorrow: 10:00 AM, 11:30 AM, 02:00 PM, 04:30 PM'
     );
 
+    // Strict Language Directive based on detected turn language
+    let languageDirective = '';
+    if (lang === 'mr') {
+      languageDirective = `\n\nCRITICAL LANGUAGE DIRECTIVE:\nThe caller is speaking in MARATHI (मराठी). You MUST respond EXCLUSIVELY in pure, warm, natural, and fluent MARATHI (मराठी). Do NOT use Hindi. Speak like a real human Marathi hospital receptionist (e.g. "नमस्कार! हो नक्कीच, मी आपली मदत करतो...").`;
+    } else if (lang === 'hi') {
+      languageDirective = `\n\nCRITICAL LANGUAGE DIRECTIVE:\nThe caller is speaking in HINDI (हिंदी). You MUST respond EXCLUSIVELY in polite, warm, natural HINDI (हिंदी). (e.g. "नमस्ते! जी बिल्कुल, मैं आपकी पूरी सहायता करूँगी...").`;
+    } else {
+      languageDirective = `\n\nCRITICAL LANGUAGE DIRECTIVE:\nThe caller is speaking in ENGLISH. Respond in crisp, warm, natural English with conversational empathy.`;
+    }
+
+    const systemPrompt = basePrompt + languageDirective;
+
     const messages = [
       { role: 'system', content: systemPrompt },
       ...history.slice(-6).map((h) => ({ role: h.role, content: h.content })),
@@ -94,7 +124,7 @@ async function tryLiveLlmCall(
     ];
 
     const modelsToTry = isGroq
-      ? ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant']
+      ? ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'llama-3.1-8b-instant']
       : ['gpt-4o-mini', 'gpt-4o'];
 
     for (const m of modelsToTry) {
@@ -108,7 +138,7 @@ async function tryLiveLlmCall(
           body: JSON.stringify({
             model: m,
             messages,
-            temperature: 0.35,
+            temperature: 0.3,
             max_tokens: 160,
           }),
         });
@@ -135,12 +165,13 @@ export async function processReceptionistTurn(
   history: ChatMessage[] = [],
   callerPhone: string = '+91 98765 43210',
   customGroqKey?: string,
-  customOpenaiKey?: string
+  customOpenaiKey?: string,
+  clientHintLang?: 'mr' | 'hi' | 'en'
 ): Promise<OrchestratorResult> {
   const startTime = Date.now();
   const rawText = userMessage.trim();
   const text = rawText.toLowerCase();
-  const lang = detectLanguage(rawText);
+  const lang = detectLanguage(rawText, clientHintLang);
 
   const clinic = localStore.getClinicById(clinicId);
   const clinicName = clinic?.name || 'Apollo Dental Clinic';

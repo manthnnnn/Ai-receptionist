@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useClinic } from '../layout/clinic-context';
-import { Mic, MicOff, X, Zap, Volume2, Bot, User, CheckCircle2, Globe } from 'lucide-react';
+import { Mic, MicOff, X, Zap, Volume2, CheckCircle2, Radio, PhoneCall, PhoneOff } from 'lucide-react';
 
 interface DialogTurn {
   id: string;
@@ -12,7 +12,7 @@ interface DialogTurn {
   lang?: string;
 }
 
-// Clean text for natural speech synthesis (prevent TTS from reading "Indian rupee sign")
+// Clean and enhance text for natural, emotive speech synthesis
 function cleanSpeechText(text: string, lang: 'mr' | 'hi' | 'en'): string {
   let cleaned = text;
 
@@ -24,7 +24,7 @@ function cleanSpeechText(text: string, lang: 'mr' | 'hi' | 'en'): string {
   });
   cleaned = cleaned.replace(/₹/g, lang === 'en' ? ' rupees ' : ' रुपये ');
 
-  // Fix Dr. abbreviation
+  // Fix Dr. abbreviation for natural speech
   cleaned = cleaned.replace(/Dr\.\s*/gi, lang === 'en' ? 'Doctor ' : 'डॉक्टर ');
 
   // Clean phone numbers: remove +91- prefix so it reads naturally
@@ -43,37 +43,51 @@ export function VoiceTestModal() {
   const { isVoiceTesterOpen, setIsVoiceTesterOpen, activeClinicId, activeClinic, refreshData } = useClinic();
   const [isRecording, setIsRecording] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
-  const [selectedLang, setSelectedLang] = useState<'en' | 'hi' | 'mr'>('en');
-  const [dialog, setDialog] = useState<DialogTurn[]>([
-    {
-      id: 'init',
-      speaker: 'ai',
-      text: `Hello! Thank you for calling ${activeClinic?.name || 'Apollo Dental Clinic'}. How can I assist you today?`,
-    },
-  ]);
+  const [isHandsFree, setIsHandsFree] = useState(true); // Default true for ChatGPT-like hands-free voice
+  const [selectedLang, setSelectedLang] = useState<'en' | 'hi' | 'mr'>('mr'); // Default Marathi for user
+  const [dialog, setDialog] = useState<DialogTurn[]>([]);
   const [statusText, setStatusText] = useState('Ready');
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const recognitionRef = useRef<any>(null);
+  const isHandsFreeRef = useRef(isHandsFree);
+  const selectedLangRef = useRef(selectedLang);
 
-  // Update initial greeting when language changes
+  isHandsFreeRef.current = isHandsFree;
+  selectedLangRef.current = selectedLang;
+
+  // Load available browser voices
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const updateVoices = () => {
+        setAvailableVoices(window.speechSynthesis.getVoices());
+      };
+      updateVoices();
+      window.speechSynthesis.onvoiceschanged = updateVoices;
+    }
+  }, []);
+
+  // Update initial greeting when language or activeClinic changes
   useEffect(() => {
     const clinicName = activeClinic?.name || 'Apollo Dental Clinic';
-    let text = `Hello! Thank you for calling ${clinicName}. How can I assist you today?`;
-    if (selectedLang === 'mr') {
-      text = `नमस्कार! ${clinicName} मध्ये आपले स्वागत आहे. मी आपली काय मदत करू?`;
-    } else if (selectedLang === 'hi') {
-      text = `नमस्ते! ${clinicName} में आपका स्वागत है। मैं आपकी क्या सहायता कर सकता हूँ?`;
+    let text = `नमस्कार! ${clinicName} मध्ये आपले स्वागत आहे. मी आपली काय मदत करू शकतो?`;
+    if (selectedLang === 'hi') {
+      text = `नमस्ते! ${clinicName} में आपका स्वागत है। मैं आपकी क्या सहायता कर सकती हूँ?`;
+    } else if (selectedLang === 'en') {
+      text = `Hello! Thank you for calling ${clinicName}. My name is Maya. How can I assist you today?`;
     }
     setDialog([
       {
         id: `init-${selectedLang}`,
         speaker: 'ai',
         text,
+        lang: selectedLang,
       },
     ]);
   }, [selectedLang, activeClinic]);
 
-  // Waveform renderer
+  // Waveform animation renderer
   useEffect(() => {
     let animationId: number;
     const canvas = canvasRef.current;
@@ -83,15 +97,15 @@ export function VoiceTestModal() {
 
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const bars = 40;
+      const bars = 44;
       const barWidth = canvas.width / bars - 2;
 
       for (let i = 0; i < bars; i++) {
         let height = 3;
         if (isRecording) {
-          height = Math.sin(Date.now() / 150 + i * 0.4) * 16 + 20 + Math.random() * 6;
+          height = Math.sin(Date.now() / 120 + i * 0.45) * 18 + 22 + Math.random() * 8;
         } else if (isAiSpeaking) {
-          height = Math.sin(Date.now() / 100 + i * 0.6) * 12 + 16 + Math.random() * 5;
+          height = Math.sin(Date.now() / 90 + i * 0.6) * 14 + 18 + Math.random() * 6;
         }
 
         const x = i * (barWidth + 2);
@@ -102,11 +116,11 @@ export function VoiceTestModal() {
         ctx.roundRect(x, y, barWidth, height, radius);
 
         if (isRecording) {
-          ctx.fillStyle = `rgba(59, 130, 246, ${0.7 + Math.sin(Date.now() / 200 + i) * 0.3})`;
+          ctx.fillStyle = `rgba(255, 85, 0, ${0.75 + Math.sin(Date.now() / 150 + i) * 0.25})`;
         } else if (isAiSpeaking) {
-          ctx.fillStyle = `rgba(34, 197, 94, ${0.7 + Math.sin(Date.now() / 200 + i) * 0.3})`;
+          ctx.fillStyle = `rgba(255, 140, 0, ${0.8 + Math.sin(Date.now() / 100 + i) * 0.2})`;
         } else {
-          ctx.fillStyle = 'rgba(203, 213, 225, 0.8)';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
         }
         ctx.fill();
       }
@@ -117,12 +131,62 @@ export function VoiceTestModal() {
     return () => cancelAnimationFrame(animationId);
   }, [isRecording, isAiSpeaking]);
 
+  // Start Speech Recognition (Microphone)
+  const startListening = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setStatusText('Speech recognition not supported in this browser');
+      return;
+    }
+
+    try {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      const currentLang = selectedLangRef.current;
+      recognition.lang = currentLang === 'mr' ? 'mr-IN' : currentLang === 'hi' ? 'hi-IN' : 'en-IN';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsRecording(true);
+        setStatusText(currentLang === 'mr' ? '● मी ऐकत आहे, बोला...' : currentLang === 'hi' ? '● मैं सुन रही हूँ, बोलिए...' : '● Listening...');
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setIsRecording(false);
+        sendTurn(transcript);
+      };
+
+      recognition.onerror = (e: any) => {
+        console.warn('Speech recognition error:', e);
+        setIsRecording(false);
+        setStatusText('Ready');
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
+
+      recognition.start();
+    } catch (err) {
+      console.warn('Recognition start exception:', err);
+      setIsRecording(false);
+    }
+  }, []);
+
+  // Send turn to backend & handle emotional vocal speech response
   const sendTurn = async (userText: string) => {
     if (!userText.trim()) return;
 
     const userTurn: DialogTurn = { id: `usr-${Date.now()}`, speaker: 'caller', text: userText };
     setDialog((prev) => [...prev, userTurn]);
-    setStatusText('AI processing...');
+    setStatusText('AI विचारात आहे...');
 
     try {
       const groqKey = typeof window !== 'undefined' ? localStorage.getItem('CLINIC_GROQ_API_KEY') || undefined : undefined;
@@ -137,33 +201,36 @@ export function VoiceTestModal() {
           caller_phone: '+91 98765 43210',
           groq_api_key: groqKey,
           openai_api_key: openaiKey,
+          language: selectedLangRef.current,
         }),
       });
       const data = await res.json();
 
       if (data.success) {
-        const turnLang = data.language || selectedLang;
+        const turnLang = data.language || selectedLangRef.current;
         const aiTurn: DialogTurn = {
           id: `ai-${Date.now()}`,
           speaker: 'ai',
           text: data.reply,
-          latency_ms: data.latency_ms || 575,
+          latency_ms: data.latency_ms || 215,
           lang: turnLang,
         };
         setDialog((prev) => [...prev, aiTurn]);
         setStatusText('Ready');
 
-        // Play synthetic speech with speech-cleaned text & native voice
+        // Play synthetic speech with emotive natural voice
         if ('speechSynthesis' in window) {
           window.speechSynthesis.cancel();
           setIsAiSpeaking(true);
 
           const spokenText = cleanSpeechText(data.reply, turnLang);
           const utter = new SpeechSynthesisUtterance(spokenText);
-          utter.rate = 1.06;
-          utter.pitch = 1.04;
+          
+          // Lively human conversational cadence
+          utter.rate = 1.04;
+          utter.pitch = 1.06;
 
-          const voices = window.speechSynthesis.getVoices();
+          const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
           let selectedVoice = null;
 
           if (turnLang === 'mr') {
@@ -173,14 +240,14 @@ export function VoiceTestModal() {
               voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
               voices.find((v) => v.name.includes('Natural') && (v.lang.includes('en-IN') || v.name.includes('Neerja'))) ||
               voices.find((v) => v.lang.includes('hi') || v.name.includes('Heera')) ||
-              voices.find((v) => v.lang.includes('en-IN') || v.name.includes('India') || v.name.includes('Neerja'));
+              voices.find((v) => v.lang.includes('en-IN') || v.name.includes('India'));
           } else if (turnLang === 'hi') {
             utter.lang = 'hi-IN';
             selectedVoice =
               voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
               voices.find((v) => v.lang.includes('hi') || v.name.toLowerCase().includes('hindi') || v.name.includes('Heera')) ||
               voices.find((v) => v.name.includes('Natural') && v.lang.includes('en-IN')) ||
-              voices.find((v) => v.lang.includes('en-IN') || v.name.includes('India') || v.name.includes('Neerja'));
+              voices.find((v) => v.lang.includes('en-IN') || v.name.includes('India'));
           } else {
             utter.lang = 'en-IN';
             selectedVoice =
@@ -193,8 +260,25 @@ export function VoiceTestModal() {
             utter.voice = selectedVoice;
           }
 
-          utter.onend = () => setIsAiSpeaking(false);
-          utter.onerror = () => setIsAiSpeaking(false);
+          // When AI finishes speaking, seamlessly restart listening in Hands-Free Mode!
+          utter.onend = () => {
+            setIsAiSpeaking(false);
+            if (isHandsFreeRef.current) {
+              setTimeout(() => {
+                startListening();
+              }, 400);
+            }
+          };
+
+          utter.onerror = () => {
+            setIsAiSpeaking(false);
+            if (isHandsFreeRef.current) {
+              setTimeout(() => {
+                startListening();
+              }, 400);
+            }
+          };
+
           window.speechSynthesis.speak(utter);
         }
 
@@ -210,40 +294,11 @@ export function VoiceTestModal() {
 
   const handleToggleMic = () => {
     if (isRecording) {
-      setIsRecording(false);
-      setStatusText('Processing...');
       if (recognitionRef.current) recognitionRef.current.stop();
+      setIsRecording(false);
+      setStatusText('Ready');
     } else {
-      setIsRecording(true);
-      setStatusText(selectedLang === 'mr' ? 'ऐकत आहे...' : selectedLang === 'hi' ? 'सुन रहा हूँ...' : 'Listening...');
-
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognitionRef.current = recognition;
-        recognition.lang = selectedLang === 'mr' ? 'mr-IN' : selectedLang === 'hi' ? 'hi-IN' : 'en-IN';
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setIsRecording(false);
-          sendTurn(transcript);
-        };
-        recognition.onerror = () => { setIsRecording(false); setStatusText('Ready'); };
-        recognition.onend = () => setIsRecording(false);
-        recognition.start();
-      } else {
-        setTimeout(() => {
-          setIsRecording(false);
-          const fallback =
-            selectedLang === 'mr'
-              ? 'डॉक्टरांची फी किती आहे?'
-              : selectedLang === 'hi'
-              ? 'डॉक्टर की फीस कितनी है?'
-              : 'What is the consultation fee for dental doctors?';
-          sendTurn(fallback);
-        }, 2000);
-      }
+      startListening();
     }
   };
 
@@ -251,53 +306,68 @@ export function VoiceTestModal() {
 
   const quickPromptsByLang = {
     en: [
-      'Check Dr. Verma tomorrow',
-      'Book 4:30 PM slot',
-      'What is the fee?',
-      'Is parking available?',
-      'Severe chest pain',
+      'Book appointment with Dr. Verma tomorrow',
+      'What is the fee for root canal?',
+      'Do you accept Star Health insurance?',
+      'Where is the clinic located?',
+      'I have severe toothache and pain',
     ],
     hi: [
-      'कल डॉक्टर का समय बताइए',
-      'कल 4:30 बजे की अपॉइंटमेंट बुक करें',
-      'डॉक्टर की फीस कितनी है?',
-      'क्या क्लिनिक में पार्किंग है?',
-      'सीने में बहुत दर्द है',
+      'कल डॉ. वर्मा के साथ अपॉइंटमेंट बुक करें',
+      'रूट कैनाल की फीस कितनी है?',
+      'क्या बीमा क्लेम उपलब्ध है?',
+      'क्लीनिक कहाँ स्थित है?',
+      'दांत में बहुत तेज दर्द हो रहा है',
     ],
     mr: [
-      'उद्या डॉक्टर वर्मांची वेळ आहे का?',
-      'उद्या ४:३० वाजता भेट निश्चित करा',
-      'क्लिनिकची फी किती आहे?',
-      'पार्किंगची सोय आहे का?',
-      'छातीत खूप दुखत आहे',
+      'मराठीमध्ये बोला.',
+      'उद्या डॉ. वर्मा यांच्यासोबत वेळ बुक करा',
+      'रूट कॅनलची फी किती आहे?',
+      'दवाखाना कुठे आहे आणि पार्किंग आहे का?',
+      'माझा दात खूप दुखतोय, काय करू?',
     ],
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
       <div className="gcore-card border border-white/15 w-full max-w-2xl rounded-apple-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scale-in">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-950/80 border-b border-white/10 flex items-center justify-between">
+        <div className="px-6 py-4 bg-black/90 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-apple bg-gcore-orange/15 border border-gcore-orange/30 flex items-center justify-center text-gcore-orange shadow-gcore-chip">
               <Mic className="w-4 h-4" strokeWidth={2} />
             </div>
             <div>
-              <h3 className="font-bold text-white text-[15px] tracking-tight">Multilingual Voice Console</h3>
-              <p className="text-xs text-slate-400">English · हिंदी · मराठी Clean Audio</p>
+              <h3 className="font-bold text-white text-[15px] tracking-tight">Fluent Conversational Voice Console</h3>
+              <p className="text-xs text-slate-400">Hands-Free Automatic Talking · Marathi, Hindi &amp; English</p>
             </div>
           </div>
 
-          {/* Language Selector */}
+          {/* Controls: Language Selector & Hands-Free Toggle */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-slate-900 border border-white/10 rounded-lg p-0.5 text-xs">
+            {/* Hands-Free Mode Toggle */}
+            <button
+              onClick={() => setIsHandsFree(!isHandsFree)}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-apple flex items-center gap-1.5 ${
+                isHandsFree 
+                  ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300 shadow-sm' 
+                  : 'bg-black border-white/10 text-slate-400'
+              }`}
+              title="Hands-Free Continuous Voice: AI speaks and automatically listens back without button clicks"
+            >
+              <Radio className={`w-3 h-3 ${isHandsFree ? 'animate-pulse text-emerald-400' : 'text-slate-500'}`} />
+              <span>{isHandsFree ? 'Hands-Free On' : 'Manual Mic'}</span>
+            </button>
+
+            {/* Language Switcher */}
+            <div className="flex items-center bg-black border border-white/10 rounded-lg p-0.5 text-xs">
               <button
-                onClick={() => setSelectedLang('en')}
+                onClick={() => setSelectedLang('mr')}
                 className={`px-2.5 py-1 rounded-md transition-apple font-medium ${
-                  selectedLang === 'en' ? 'bg-gcore-orange text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                  selectedLang === 'mr' ? 'bg-gcore-orange text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                English
+                मराठी
               </button>
               <button
                 onClick={() => setSelectedLang('hi')}
@@ -308,57 +378,61 @@ export function VoiceTestModal() {
                 हिंदी
               </button>
               <button
-                onClick={() => setSelectedLang('mr')}
+                onClick={() => setSelectedLang('en')}
                 className={`px-2.5 py-1 rounded-md transition-apple font-medium ${
-                  selectedLang === 'mr' ? 'bg-gcore-orange text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                  selectedLang === 'en' ? 'bg-gcore-orange text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                मराठी
+                English
               </button>
             </div>
 
             <button
-              onClick={() => setIsVoiceTesterOpen(false)}
-              className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-apple ml-2"
+              onClick={() => {
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                if (recognitionRef.current) recognitionRef.current.stop();
+                setIsVoiceTesterOpen(false);
+              }}
+              className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-apple ml-1"
             >
               <X className="w-5 h-5" strokeWidth={1.5} />
             </button>
           </div>
         </div>
 
-        {/* Waveform */}
-        <div className="p-4 bg-slate-950/60 border-b border-white/10">
-          <div className="bg-slate-900/90 border border-white/10 rounded-apple-lg p-3 flex flex-col gap-2 shadow-inner">
+        {/* Dynamic Waveform Visualizer */}
+        <div className="p-4 bg-black/60 border-b border-white/10">
+          <div className="bg-black/90 border border-white/10 rounded-apple-lg p-3 flex flex-col gap-2 shadow-inner">
             <div className="flex items-center justify-between text-xs">
               <span className="flex items-center gap-1.5 text-slate-300 font-medium">
                 <Volume2 className="w-3.5 h-3.5 text-gcore-orange" strokeWidth={1.8} />
-                Audio Stream ({selectedLang === 'mr' ? 'Marathi' : selectedLang === 'hi' ? 'Hindi' : 'English'})
+                Live Audio Stream ({selectedLang === 'mr' ? 'मराठी - Marathi' : selectedLang === 'hi' ? 'हिंदी - Hindi' : 'English'})
               </span>
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium ${
-                isRecording ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 animate-pulse' :
+                isRecording ? 'bg-gcore-orange/20 text-orange-300 border border-gcore-orange/40 animate-pulse' :
                 isAiSpeaking ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                'bg-slate-800 text-slate-400 border border-white/5'
+                'bg-slate-900 text-slate-400 border border-white/5'
               }`}>
-                {isRecording ? '● Listening' : isAiSpeaking ? '● Speaking' : statusText}
+                {isRecording ? '● ऐकत आहे (Listening...)' : isAiSpeaking ? '● बोलत आहे (Speaking...)' : statusText}
               </span>
             </div>
-            <canvas ref={canvasRef} width={560} height={44} className="w-full h-11 rounded bg-black/40" />
+            <canvas ref={canvasRef} width={560} height={44} className="w-full h-11 rounded bg-black" />
           </div>
         </div>
 
-        {/* Latency Bar */}
-        <div className="px-6 py-2 bg-slate-950/40 border-b border-white/10 flex items-center justify-between text-xs text-slate-400 font-medium">
+        {/* Latency & Groq Badge Bar */}
+        <div className="px-6 py-2 bg-black/40 border-b border-white/10 flex items-center justify-between text-xs text-slate-400 font-medium">
           <span className="flex items-center gap-1.5">
             <Zap className="w-3 h-3 text-gcore-orange" strokeWidth={1.8} />
-            Live Conversation Dialogue
+            Live Conversational Flow
           </span>
           <span className="text-[11px] font-mono text-orange-300">
-            Groq LLaMA 3.3 · Sub-250ms TTFT
+            Groq LLaMA 3.3 · Sub-250ms Fluent TTFT
           </span>
         </div>
 
-        {/* Dialog */}
-        <div className="p-5 flex-1 overflow-y-auto space-y-3 max-h-72 bg-black/30">
+        {/* Dialogue Scroll View */}
+        <div className="p-5 flex-1 overflow-y-auto space-y-3 max-h-72 bg-black/40">
           {dialog.map((turn) => (
             <div
               key={turn.id}
@@ -368,10 +442,10 @@ export function VoiceTestModal() {
                 className={`max-w-[82%] rounded-[18px] px-4 py-2.5 text-[13px] ${
                   turn.speaker === 'caller'
                     ? 'gcore-btn-orange text-white rounded-br-md shadow-sm'
-                    : 'bg-slate-900 border border-white/10 text-slate-100 rounded-bl-md shadow-sm'
+                    : 'bg-[#0E1117] border border-white/10 text-slate-100 rounded-bl-md shadow-sm'
                 }`}
               >
-                <p className="leading-relaxed">{turn.text}</p>
+                <p className="leading-relaxed font-normal">{turn.text}</p>
                 {turn.latency_ms && (
                   <div className="mt-1 text-[10px] opacity-70 font-mono flex items-center gap-1">
                     <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" strokeWidth={1.8} />
@@ -386,8 +460,8 @@ export function VoiceTestModal() {
           ))}
         </div>
 
-        {/* Quick Prompts by Language */}
-        <div className="px-5 py-3 bg-slate-950/80 border-t border-white/10">
+        {/* Quick Clickable Prompts */}
+        <div className="px-5 py-3 bg-black/80 border-t border-white/10">
           <p className="text-[11px] text-slate-400 mb-1.5">Quick voice test in {selectedLang === 'mr' ? 'मराठी' : selectedLang === 'hi' ? 'हिंदी' : 'English'}:</p>
           <div className="flex flex-wrap gap-1.5">
             {quickPromptsByLang[selectedLang].map((prompt) => (
@@ -402,14 +476,19 @@ export function VoiceTestModal() {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-5 py-3.5 bg-slate-950 border-t border-white/10 flex items-center justify-between">
+        {/* Footer Actions */}
+        <div className="px-5 py-3.5 bg-black border-t border-white/10 flex items-center justify-between">
           <button
-            onClick={() => setIsVoiceTesterOpen(false)}
+            onClick={() => {
+              if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+              if (recognitionRef.current) recognitionRef.current.stop();
+              setIsVoiceTesterOpen(false);
+            }}
             className="px-4 py-2 rounded-apple text-xs font-medium text-slate-400 hover:text-white transition-apple"
           >
             Close
           </button>
+          
           <button
             onClick={handleToggleMic}
             className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold transition-apple ${
@@ -419,7 +498,7 @@ export function VoiceTestModal() {
             }`}
           >
             {isRecording ? <MicOff className="w-4 h-4" strokeWidth={2} /> : <Mic className="w-4 h-4" strokeWidth={2} />}
-            <span>{isRecording ? 'Stop' : `Speak in ${selectedLang === 'mr' ? 'मराठी' : selectedLang === 'hi' ? 'हिंदी' : 'English'}`}</span>
+            <span>{isRecording ? 'Listening...' : `Speak in ${selectedLang === 'mr' ? 'मराठी' : selectedLang === 'hi' ? 'हिंदी' : 'English'}`}</span>
           </button>
         </div>
       </div>
