@@ -127,6 +127,16 @@ export interface Appointment {
 
 export type CallOutcome = 'BOOKED' | 'FAQ_ANSWERED' | 'RESCHEDULED' | 'CANCELLED' | 'ESCALATED' | 'ABANDONED' | 'ERROR';
 
+export interface DialogueTurn {
+  turn_index: number;
+  speaker: 'user' | 'ai';
+  text: string;
+  tool_called?: string;
+  latency_ms?: number;
+  language?: 'en' | 'hi' | 'mr';
+  timestamp: string;
+}
+
 export interface CallLog {
   id: string;
   clinic_id: string;
@@ -140,6 +150,9 @@ export interface CallLog {
   transfer_status?: string;
   created_at: string;
   transcript_preview?: string;
+  dialogue_turns?: DialogueTurn[];
+  total_latency_ms?: number;
+  detected_language?: 'en' | 'hi' | 'mr';
 }
 
 export interface Message {

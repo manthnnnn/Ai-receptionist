@@ -1,7 +1,7 @@
 import { 
   Clinic, ClinicSettings, Doctor, DoctorAvailability, DoctorBreak, 
   DoctorLeave, ClinicHoliday, Service, Patient, Appointment, 
-  CallLog, ClinicFAQ, ClinicStats 
+  CallLog, ClinicFAQ, ClinicStats, DialogueTurn
 } from '@/types';
 
 class LocalStore {
@@ -650,7 +650,24 @@ class LocalStore {
     return log;
   }
 
-  // FAQs
+  addDialogueTurn(idOrSid: string, turn: Omit<DialogueTurn, 'turn_index'>): CallLog | undefined {
+    const log = this.callLogs.find((c) => c.id === idOrSid || (c as any).call_sid === idOrSid);
+    if (!log) return undefined;
+    if (!log.dialogue_turns) log.dialogue_turns = [];
+    const newTurn: DialogueTurn = { ...turn, turn_index: log.dialogue_turns.length };
+    log.dialogue_turns.push(newTurn);
+    // Accumulate total AI latency
+    if (turn.speaker === 'ai' && turn.latency_ms) {
+      log.total_latency_ms = (log.total_latency_ms || 0) + turn.latency_ms;
+    }
+    // Track detected language (last AI turn wins)
+    if (turn.language) {
+      log.detected_language = turn.language;
+    }
+    return log;
+  }
+
+
   getClinicFAQs(clinicId: string, category?: string): ClinicFAQ[] {
     return this.faqs.filter((f) => {
       if (f.clinic_id !== clinicId) return false;

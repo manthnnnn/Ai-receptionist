@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { processReceptionistTurn } from '@/lib/ai/orchestrator';
 import { buildSpeechResponseTwiML, buildHumanTransferTwiML } from '@/lib/twilio/twiml';
 import { localStore } from '@/lib/store/local-store';
+import { buildLiveContext } from '@/lib/ai/context-injector';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,6 +17,10 @@ export async function POST(req: NextRequest) {
     const clinic = localStore.getClinicById(clinicId);
     const settings = localStore.getClinicSettings(clinicId);
 
+    // ─── D1: Dynamic Context Injection ──────────────────────────────────────
+    // Fetch live doctors, FAQs, and open slots before each turn
+    const liveCtx = buildLiveContext(clinicId);
+
     // If caller didn't say anything
     if (!speechResult || speechResult.trim() === '') {
       const responseTwiml = buildSpeechResponseTwiML(
@@ -24,6 +29,15 @@ export async function POST(req: NextRequest) {
       );
       return new NextResponse(responseTwiml, {
         headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+      });
+    }
+
+    // ─── D3: Log user's speech turn ─────────────────────────────────────────
+    if (callSid) {
+      localStore.addDialogueTurn(callSid, {
+        speaker: 'user',
+        text: speechResult,
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -38,8 +52,18 @@ export async function POST(req: NextRequest) {
     const isEscalated = aiResult.call_outcome === 'ESCALATED' || aiResult.tool_called === 'transfer_call_to_human';
     const isEndCall = aiResult.call_outcome === 'COMPLETED' || aiResult.call_outcome === 'BOOKED';
 
-    // Update call log with dialogue snippet
+    // ─── D3: Log AI response turn with latency ───────────────────────────────
     if (callSid) {
+      localStore.addDialogueTurn(callSid, {
+        speaker: 'ai',
+        text: aiResult.reply,
+        tool_called: aiResult.tool_called,
+        latency_ms: aiResult.latency_ms,
+        language: aiResult.language,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Update call log transcript preview and outcome
       const existing = localStore.getCallLogBySid(callSid);
       const updatedPreview = existing?.transcript_preview
         ? `${existing.transcript_preview} | User: "${speechResult}" -> AI: "${aiResult.reply}"`
@@ -48,6 +72,7 @@ export async function POST(req: NextRequest) {
       localStore.updateCallLog(callSid, {
         transcript_preview: updatedPreview,
         outcome: isEscalated ? 'ESCALATED' : (isEndCall ? 'BOOKED' : 'FAQ_ANSWERED'),
+        detected_language: aiResult.language,
       });
     }
 
@@ -71,9 +96,17 @@ export async function POST(req: NextRequest) {
       isEndCall
     );
 
-    return new NextResponse(replyTwiml, {
-      headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+    // Expose live context info in a header for debugging
+    const response = new NextResponse(replyTwiml, {
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'X-Context-Doctors': String(liveCtx.doctors.length),
+        'X-Context-Slots-Tomorrow': liveCtx.open_slots_tomorrow.slice(0, 3).join(', '),
+        'X-AI-Latency-Ms': String(aiResult.latency_ms),
+        'X-Language-Detected': aiResult.language || 'en',
+      },
     });
+    return response;
   } catch (error: any) {
     console.error('Error in Twilio Gather Endpoint:', error);
     const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Aditi" language="en-IN">Thank you for your response. Transferring you to our clinic reception.</Say><Dial>+919876500001</Dial></Response>`;
@@ -82,3 +115,5 @@ export async function POST(req: NextRequest) {
     });
   }
 }
+
+

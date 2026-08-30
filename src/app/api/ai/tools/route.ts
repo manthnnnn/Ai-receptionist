@@ -4,7 +4,8 @@ import { clinicTools } from '@/lib/ai/tools';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { tool_name, arguments: args } = body;
+    const tool_name = body.tool_name || body.tool;
+    const toolArgs = body.arguments || body.args || body;
 
     if (!tool_name || !(tool_name in clinicTools)) {
       return NextResponse.json(
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const toolFn = (clinicTools as any)[tool_name];
-    const result = await toolFn(args);
+    const result = await toolFn(toolArgs);
 
     return NextResponse.json({
       success: true,

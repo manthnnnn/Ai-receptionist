@@ -9,6 +9,8 @@ import {
   CancelAppointmentSchema,
   RescheduleAppointmentSchema,
   TransferToHumanSchema,
+  GetClinicFAQsSchema,
+  LogDialogueTurnSchema,
 } from './tool-schemas';
 
 export const clinicTools = {
@@ -244,6 +246,61 @@ export const clinicTools = {
       transfer_required: true,
       handoff_number: handoffNumber,
       message: `I am transferring your call to our clinic front-desk team at ${handoffNumber}. Please hold on for a moment.`,
+    };
+  },
+
+  // 9. Get Clinic FAQs by Category (NEW – Task 2 Person 2)
+  get_clinic_faqs: async (args: unknown) => {
+    const parsed = GetClinicFAQsSchema.parse(args);
+    const faqs = localStore.getClinicFAQs(parsed.clinic_id, parsed.category);
+
+    if (faqs.length === 0) {
+      return {
+        success: true,
+        count: 0,
+        category: parsed.category || 'all',
+        message: 'No FAQs found for the requested category.',
+        faqs: [],
+      };
+    }
+
+    return {
+      success: true,
+      count: faqs.length,
+      category: parsed.category || 'all',
+      faqs: faqs.map((f) => ({
+        category: f.category,
+        question: f.question,
+        answer: f.answer,
+      })),
+    };
+  },
+
+  // 10. Log Dialogue Turn (NEW – Task 2 Person 2)
+  log_dialogue_turn: async (args: unknown) => {
+    const parsed = LogDialogueTurnSchema.parse(args);
+    const result = localStore.addDialogueTurn(parsed.call_sid, {
+      speaker: parsed.speaker,
+      text: parsed.text,
+      tool_called: parsed.tool_called,
+      latency_ms: parsed.latency_ms,
+      language: parsed.language,
+      timestamp: new Date().toISOString(),
+    });
+
+    if (!result) {
+      return {
+        success: false,
+        error: `Call log not found for SID: ${parsed.call_sid}`,
+      };
+    }
+
+    return {
+      success: true,
+      call_sid: parsed.call_sid,
+      turn_index: (result.dialogue_turns?.length || 1) - 1,
+      total_turns: result.dialogue_turns?.length || 1,
+      total_latency_ms: result.total_latency_ms || 0,
     };
   },
 };
