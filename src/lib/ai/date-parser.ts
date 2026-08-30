@@ -97,6 +97,9 @@ export interface ParsedDateTime {
   confidence: number; // 0-1
   parsed_day?: string;
   parsed_time?: string;
+  is_contradiction?: boolean;
+  contradiction_reason?: string;
+  is_out_of_hours?: boolean;
 }
 
 /**
@@ -202,14 +205,22 @@ export function parseNaturalDateTime(
     }
   }
 
-  // ── 5. Apply Period Offset ──────────────────────────────────────
+  // ── 5. Detect Contradictions & Apply Period Offset ─────────────
+  let isContradiction = false;
+  let contradictionReason = '';
   if (targetHour !== null && periodInfo) {
-    // If hour is 1-12 and period says PM, add 12
-    if (periodInfo.isPM && targetHour >= 1 && targetHour <= 11) {
-      targetHour += 12;
+    if (periodInfo.isPM && targetHour >= 8 && targetHour <= 11) {
+      isContradiction = true;
+      contradictionReason = `contradiction_morning_in_afternoon`;
+    } else if (!periodInfo.isPM && targetHour >= 1 && targetHour <= 7) {
+      isContradiction = true;
+      contradictionReason = `contradiction_afternoon_in_morning`;
     }
-    // If period says AM and hour is 12, set to 0
-    if (!periodInfo.isPM && targetHour === 12) {
+
+    // Apply offset
+    if (periodInfo.isPM && targetHour >= 1 && targetHour <= 7) {
+      targetHour += 12;
+    } else if (!periodInfo.isPM && targetHour === 12) {
       targetHour = 0;
     }
   } else if (targetHour !== null && !ampmMatch) {
@@ -240,6 +251,8 @@ export function parseNaturalDateTime(
   targetHour = Math.max(0, Math.min(23, targetHour));
   targetMinute = Math.max(0, Math.min(59, targetMinute));
 
+  const isOutOfHours = (targetHour < 9 || (targetHour === 9 && targetMinute < 30) || targetHour >= 20);
+
   const year = targetDate.getFullYear();
   const month = String(targetDate.getMonth() + 1).padStart(2, '0');
   const day = String(targetDate.getDate()).padStart(2, '0');
@@ -257,6 +270,9 @@ export function parseNaturalDateTime(
     confidence: Math.min(1, confidence),
     parsed_day: parsedDay,
     parsed_time: parsedTime,
+    is_contradiction: isContradiction,
+    contradiction_reason: contradictionReason,
+    is_out_of_hours: isOutOfHours,
   };
 }
 

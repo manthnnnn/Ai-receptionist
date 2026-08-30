@@ -487,6 +487,39 @@ export async function processReceptionistTurn(
   ) {
     // ── NL Slot Extraction ─────────────────────────────────────
     const parsed = parseNaturalDateTime(rawText, lang);
+
+    // ── Handle Contradictory Time Requests (e.g. "afternoon 10 o clock") ──
+    if (parsed?.is_contradiction) {
+      let reply = `Just to check, 10 o'clock is in the morning, while afternoon starts from 12:00 PM. Would you like 10:00 AM in the morning, or an afternoon slot like 2:00 PM or 4:30 PM?`;
+      if (lang === 'mr') {
+        reply = `दुपारी १० वाजता नसतात. आपल्याला सकाळी १०:०० वाजता भेट हवी आहे की दुपारी २:०० किंवा ४:३० वाजता चालेल?`;
+      } else if (lang === 'hi') {
+        reply = `१० बजे सुबह का समय होता है। क्या आपको सुबह १०:०० बजे आना है या दोपहर २:०० या ४:३० बजे का समय बुक करूँ?`;
+      }
+      return {
+        reply,
+        language: lang,
+        latency_ms: Date.now() - startTime,
+        call_outcome: 'FAQ_ANSWERED',
+      };
+    }
+
+    // ── Handle Out-of-Hours Requests (e.g. 10 PM or 4 AM) ──
+    if (parsed?.is_out_of_hours) {
+      let reply = `Our clinic is open from 9:30 AM to 7:30 PM. Our nearest open slots tomorrow are 10:00 AM, 11:30 AM, 2:00 PM, and 4:30 PM. Which time suits you best?`;
+      if (lang === 'mr') {
+        reply = `आमचे क्लिनिक सकाळी ९:३० ते संध्याकाळी ७:३० पर्यंत सुरू असते. उद्या सकाळी १०:००, ११:३० किंवा दुपारी २:०० वाजता वेळ उपलब्ध आहे. कोणती वेळ बुक करू?`;
+      } else if (lang === 'hi') {
+        reply = `हमारा क्लिनिक सुबह 9:30 से शाम 7:30 तक खुला रहता है। कल सुबह 10:00, 11:30 या दोपहर 2:00 बजे का स्लॉट उपलब्ध है। मैं कौन सा समय बुक करूँ?`;
+      }
+      return {
+        reply,
+        language: lang,
+        latency_ms: Date.now() - startTime,
+        call_outcome: 'FAQ_ANSWERED',
+      };
+    }
+
     let targetDateStr: string;
     let slotTime: string;
     let slotFormatted: string;
