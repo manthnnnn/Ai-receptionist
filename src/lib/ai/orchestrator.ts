@@ -253,11 +253,11 @@ export async function processReceptionistTurn(
     text.includes('दांत दर्द')
   ) {
     const verma = doctors.find((d) => d.name.includes('Verma')) || doctors[0];
-    let reply = `Dr. Ashish Verma is our senior Endodontist specializing in painless single-sitting Root Canal Treatments (RCT) and dental trauma. His consultation fee is ₹${verma.consultation_fee}. Would you like to schedule an appointment with Dr. Verma?`;
+    let reply = `Oh, Dr. Ashish Verma is wonderful with root canals! He specializes in completely painless single-sitting treatments, and his consultation is ₹${verma.consultation_fee}. Would you like me to book a comfortable slot for you tomorrow?`;
     if (lang === 'mr') {
-      reply = `डॉ. आशिष वर्मा हे आमचे वरिष्ठ एंडोडॉन्टिस्ट असून वेदनारहित रूट कॅनल (RCT) उपचारात तज्ज्ञ आहेत. त्यांचे तपासणी शुल्क ₹${verma.consultation_fee} आहे. आपण डॉ. वर्मा यांच्यासोबत भेट निश्चित करू इच्छिता का?`;
+      reply = `हो नक्कीच! डॉ. आशिष वर्मा रूट कॅनल आणि दातदुखीच्या वेदनारहित उपचारात खूप अनुभवी आहेत. त्यांचे तपासणी शुल्क ₹${verma.consultation_fee} आहे. मी उद्याची तुमची वेळ निश्चित करू का?`;
     } else if (lang === 'hi') {
-      reply = `डॉ. आशीष वर्मा हमारे वरिष्ठ एंडोडॉन्टिस्ट हैं जो दर्द-रहित रूट कैनाल ट्रीटमेंट (RCT) में विशेषज्ञ हैं। उनकी कंसल्टेशन फीस ₹${verma.consultation_fee} है। क्या आप उनके साथ अपॉइंटमेंट बुक करना चाहेंगे?`;
+      reply = `जी बिल्कुल! डॉ. आशीष वर्मा रूट कैनाल बहुत ही आराम से और बिना किसी दर्द के करते हैं। उनकी फीस ₹${verma.consultation_fee} है। क्या मैं आपके लिए कल का कोई समय बुक कर दूँ?`;
     }
     return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
   }
@@ -273,11 +273,11 @@ export async function processReceptionistTurn(
     text.includes('अलाइनर')
   ) {
     const kulkarni = doctors.find((d) => d.name.includes('Kulkarni')) || doctors[1] || doctors[0];
-    let reply = `Dr. Neha Kulkarni is our certified Orthodontist specializing in invisible clear aligners, ceramic braces, and smile design. Her consultation fee is ₹${kulkarni.consultation_fee}. Would you like to book a smile consultation?`;
+    let reply = `Yes, certainly! Dr. Neha Kulkarni is our certified Orthodontist for invisible clear aligners, ceramic braces, and smile design. Her consultation is ₹${kulkarni.consultation_fee}. Shall I set up a smile consultation for you?`;
     if (lang === 'mr') {
-      reply = `डॉ. नेहा कुलकर्णी या ऑर्थोडॉन्टिस्ट असून पारदर्शक अलाइनर्स (Clear Aligners) आणि ब्रेसेस तज्ज्ञ आहेत. त्यांचे तपासणी शुल्क ₹${kulkarni.consultation_fee} आहे. आपण भेट बुक करू इच्छिता का?`;
+      reply = `हो नक्कीच! डॉ. नेहा कुलकर्णी पारदर्शक अलाइनर्स (Clear Aligners) आणि ब्रेसेसच्या तज्ज्ञ आहेत. त्यांचे शुल्क ₹${kulkarni.consultation_fee} आहे. आपण त्यांच्यासोबत भेट ठरवू इच्छिता का?`;
     } else if (lang === 'hi') {
-      reply = `डॉ. नेहा कुलकर्णी हमारी ऑर्थोडॉन्टिस्ट हैं जो इनविजिबल क्लियर अलाइनर्स और ब्रेसेस में विशेषज्ञ हैं। उनकी फीस ₹${kulkarni.consultation_fee} है। क्या आप अपॉइंटमेंट बुक करना चाहते हैं?`;
+      reply = `जी बिल्कुल! डॉ. नेहा कुलकर्णी इनविजिबल क्लियर अलाइनर्स और ब्रेसेस की विशेषज्ञ हैं। उनकी फीस ₹${kulkarni.consultation_fee} है। क्या मैं आपकी कंसल्टेशन बुक करूँ?`;
     }
     return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
   }
@@ -295,11 +295,11 @@ export async function processReceptionistTurn(
     text.includes('स्वच्छता')
   ) {
     const mehta = doctors.find((d) => d.name.includes('Mehta')) || doctors[2] || doctors[0];
-    let reply = `Dr. Rohan Mehta specializes in dental implants, painless tooth extractions, ultrasonic teeth cleaning, and general dentistry. His consultation fee is ₹${mehta.consultation_fee}. Would you like to check his open timings?`;
+    let reply = `Dr. Rohan Mehta is fantastic for dental implants, ultrasonic teeth cleaning, and general check-ups. His consultation is ₹${mehta.consultation_fee}. Would you like to see what times he has available?`;
     if (lang === 'mr') {
-      reply = `डॉ. रोहन मेहता हे डेंटल इम्प्लांट, दात काढणे आणि अल्ट्रासोनिक दात स्वच्छता (Scaling) तज्ज्ञ आहेत. त्यांचे शुल्क ₹${mehta.consultation_fee} आहे. आपण त्यांची वेळ तपासू इच्छिता का?`;
+      reply = `हो! डॉ. रोहन मेहता हे दात स्वच्छता (Cleaning), इम्प्लांट आणि तपासणीसाठी उत्तम डॉक्टर आहेत. त्यांचे शुल्क ₹${mehta.consultation_fee} आहे. मी त्यांच्या वेळा तपासू का?`;
     } else if (lang === 'hi') {
-      reply = `डॉ. रोहन मेहता डेंटल इम्प्लांट, दांतों की अल्ट्रासोनिक सफाई (Cleaning) और जनरल डेंटिस्ट्री में विशेषज्ञ हैं। उनकी फीस ₹${mehta.consultation_fee} है। क्या आप समय देखना चाहेंगे?`;
+      reply = `जी! डॉ. रोहन मेहता दांतों की सफाई, इम्प्लांट और जनरल चेकअप के बहुत अच्छे डॉक्टर हैं। उनकी फीस ₹${mehta.consultation_fee} है। क्या आप उनका समय देखना चाहेंगे?`;
     }
     return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
   }
@@ -317,11 +317,11 @@ export async function processReceptionistTurn(
     text.includes('कितना') ||
     text.includes('किती')
   ) {
-    let reply = `General consultation is ₹500 with Dr. Rohan Mehta. Specialized root canal and orthodontic consultations with Dr. Verma and Dr. Kulkarni are ₹750 to ₹800. Digital X-rays are ₹250.`;
+    let reply = `Sure! Our general dental check-up with Dr. Rohan Mehta is ₹500, while specialized root canal and orthodontic consultations are ₹750 to ₹800. Digital X-rays are ₹250. How can I help you further?`;
     if (lang === 'mr') {
-      reply = `सामान्य तपासणी शुल्क डॉ. रोहन मेहता यांच्यासाठी ₹५०० आहे. रूट कॅनल आणि ऑर्थोडॉन्टिक्स स्पेशालिस्ट तपासणीसाठी डॉ. वर्मा आणि डॉ. कुलकर्णी यांचे शुल्क ₹७५० ते ₹८०० आहे.`;
+      reply = `नक्कीच! सामान्य तपासणी शुल्क डॉ. रोहन मेहता यांच्यासाठी ₹५०० आहे, तर रूट कॅनल व ब्रेसेस स्पेशालिस्टसाठी ₹७५० ते ₹८०० आहे. डिजिटल एक्स-रे ₹२५० आहे. मी आपली काय मदत करू?`;
     } else if (lang === 'hi') {
-      reply = `सामान्य परामर्श शुल्क डॉ. रोहन मेहता के लिए ₹500 है। रूट कैनाल और ऑर्थोडॉन्टिक्स विशेषज्ञों डॉ. वर्मा और डॉ. कुलकर्णी की फीस ₹750 से ₹800 है।`;
+      reply = `जी बिल्कुल! सामान्य जांच फीस डॉ. रोहन मेहता के लिए ₹500 है, और रूट कैनाल व ब्रेसेस विशेषज्ञों की फीस ₹750 से ₹800 है। डिजिटल एक्स-रे ₹250 है। मैं आगे आपकी क्या मदद करूँ?`;
     }
     return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
   }
@@ -338,11 +338,11 @@ export async function processReceptionistTurn(
     text.includes('विमा') ||
     text.includes('बीमा')
   ) {
-    let reply = `We accept all UPI (GPay, PhonePe, Paytm), Credit/Debit cards, and Cash. We offer cashless claims with Star Health, HDFC ERGO, and Bajaj Allianz, and stamped bills for all other TPAs.`;
+    let reply = `Yes, absolutely! We accept all UPI apps like GPay and PhonePe, credit and debit cards, and cash. We also offer instant cashless claims with Star Health, HDFC ERGO, and Bajaj Allianz.`;
     if (lang === 'mr') {
-      reply = `आम्ही सर्व UPI (GPay, PhonePe), क्रेडिट/डेबिट कार्ड आणि रोख रक्कम स्वीकारतो. स्टार हेल्थ, एचडीएफसी एर्गो आणि बजाज अलायन्ससह कॅशलेस विम्याची सुविधा उपलब्ध आहे.`;
+      reply = `हो नक्कीच! आम्ही GPay, PhonePe, कार्ड्स आणि रोख रक्कम स्वीकारतो. तसेच स्टार हेल्थ, एचडीएफसी आणि बजाज अलायन्ससह कॅशलेस विम्याची सुविधाही उपलब्ध आहे.`;
     } else if (lang === 'hi') {
-      reply = `हम सभी यूपीआई (GPay, PhonePe), कार्ड और कैश स्वीकार करते हैं। स्टार हेल्थ, एचडीएफसी एर्गो और बजाज आलियांज के साथ कैशलेस बीमा सुविधा उपलब्ध है।`;
+      reply = `जी बिल्कुल! हम GPay, PhonePe, कार्ड और कैश सभी स्वीकार करते हैं। साथ ही स्टार हेल्थ, एचडीएफसी और बजाज आलियांज के साथ कैशलेस क्लेम की सुविधा भी है।`;
     }
     return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
   }
@@ -359,11 +359,11 @@ export async function processReceptionistTurn(
     text.includes('कहाँ') ||
     text.includes('कुठे')
   ) {
-    let reply = `We are located at ${clinic?.address || '45, 2nd Cross, Koramangala 4th Block, Bangalore'}. Free dedicated basement parking is available for all patients.`;
+    let reply = `We're conveniently located at ${clinic?.address || '45, 2nd Cross in Koramangala 4th Block'}. Don't worry about your vehicle at all — we have free dedicated basement parking for cars and two-wheelers!`;
     if (lang === 'mr') {
-      reply = `क्लिनिकचा पत्ता ${clinic?.address || '४५, २रा क्रॉस, कोरामंगला, बंगळुरू'} असा आहे. रुग्णांसाठी मोफत बेसमेंट पार्किंग उपलब्ध आहे.`;
+      reply = `आमचे क्लिनिक ${clinic?.address || '४५, २रा क्रॉस, कोरामंगला, बंगळुरू'} येथे आहे. वाहनांची अजिबात काळजी करू नका — आमच्याकडे मोफत बेसमेंट पार्किंग उपलब्ध आहे!`;
     } else if (lang === 'hi') {
-      reply = `हमारा पता ${clinic?.address || '45, 2nd Cross, कोरमंगला, बैंगलोर'} है। मरीजों के लिए निःशुल्क बेसमेंट पार्किंग उपलब्ध है।`;
+      reply = `हमारा क्लिनिक ${clinic?.address || '45, 2nd Cross, कोरमंगला, बैंगलोर'} में है। गाड़ी की बिल्कुल चिंता न करें — हमारे पास कारों और बाइक्स के लिए निःशुल्क बेसमेंट पार्किंग है!`;
     }
     return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
   }
@@ -379,11 +379,11 @@ export async function processReceptionistTurn(
     text.includes('रविवार') ||
     text.includes('समय')
   ) {
-    let reply = `The clinic is open Monday to Friday from 9:30 AM to 7:30 PM, and Saturday from 10:00 AM to 4:00 PM. We are closed on Sundays.`;
+    let reply = `We are open Monday to Friday from 9:30 AM to 7:30 PM, and Saturday from 10:00 AM to 4:00 PM. We are closed on Sundays. What day suits you best to visit?`;
     if (lang === 'mr') {
-      reply = `क्लिनिक सोमवार ते शुक्रवार सकाळी ९:३० ते संध्याकाळी ७:३० आणि शनिवारी सकाळी १०:०० ते दुपारी ४:०० पर्यंत सुरू असते. रविवारी क्लिनिक बंद असते.`;
+      reply = `क्लिनिक सोमवार ते शुक्रवार सकाळी ९:३० ते संध्याकाळी ७:३० आणि शनिवारी सकाळी १०:०० ते दुपारी ४:०० पर्यंत सुरू असते. रविवारी सुट्टी असते. तुम्हाला कोणती वेळ सोयीची आहे?`;
     } else if (lang === 'hi') {
-      reply = `क्लिनिक सोमवार से शुक्रवार सुबह 9:30 से शाम 7:30 तक और शनिवार को सुबह 10:00 से शाम 4:00 तक खुला रहता है। रविवार को अवकाश रहता है।`;
+      reply = `हमारा क्लिनिक सोमवार से शुक्रवार सुबह 9:30 से शाम 7:30 और शनिवार को सुबह 10:00 से शाम 4:00 तक खुला रहता है। रविवार को अवकाश रहता है। आप किस दिन आना पसंद करेंगे?`;
     }
     return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
   }

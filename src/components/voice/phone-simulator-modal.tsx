@@ -71,8 +71,8 @@ export function PhoneSimulatorModal() {
             window.speechSynthesis.cancel();
             const spokenText = cleanSpeechText(data.reply, turnLang);
             const utter = new SpeechSynthesisUtterance(spokenText);
-            utter.rate = 0.95;
-            utter.pitch = 1.0;
+            utter.rate = 1.06;
+            utter.pitch = 1.04;
 
             const voices = window.speechSynthesis.getVoices();
             let selectedVoice = null;
@@ -80,17 +80,22 @@ export function PhoneSimulatorModal() {
             if (turnLang === 'mr') {
               utter.lang = 'mr-IN';
               selectedVoice =
-                voices.find((v) => v.lang.includes('mr') || v.name.toLowerCase().includes('marathi')) ||
-                voices.find((v) => v.lang.includes('hi') || v.name.toLowerCase().includes('hindi') || v.name.includes('Heera')) ||
+                voices.find((v) => v.name.toLowerCase().includes('marathi') || v.lang.includes('mr')) ||
+                voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
+                voices.find((v) => v.name.includes('Natural') && (v.lang.includes('en-IN') || v.name.includes('Neerja'))) ||
+                voices.find((v) => v.lang.includes('hi') || v.name.includes('Heera')) ||
                 voices.find((v) => v.lang.includes('en-IN') || v.name.includes('India') || v.name.includes('Neerja'));
             } else if (turnLang === 'hi') {
               utter.lang = 'hi-IN';
               selectedVoice =
+                voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
                 voices.find((v) => v.lang.includes('hi') || v.name.toLowerCase().includes('hindi') || v.name.includes('Heera')) ||
-                voices.find((v) => v.lang.includes('en-IN') || v.name.includes('India'));
+                voices.find((v) => v.name.includes('Natural') && v.lang.includes('en-IN')) ||
+                voices.find((v) => v.lang.includes('en-IN') || v.name.includes('India') || v.name.includes('Neerja'));
             } else {
               utter.lang = 'en-IN';
               selectedVoice =
+                voices.find((v) => v.name.includes('Natural') && (v.lang.includes('en-IN') || v.name.includes('Neerja') || v.name.includes('Prabhat'))) ||
                 voices.find((v) => v.lang.includes('en-IN') || v.name.includes('India') || v.name.includes('Neerja') || v.name.includes('Ravi')) ||
                 voices.find((v) => v.lang.startsWith('en'));
             }
