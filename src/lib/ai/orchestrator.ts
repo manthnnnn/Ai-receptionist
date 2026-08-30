@@ -269,10 +269,38 @@ export async function processReceptionistTurn(
   // ─────────────────────────────────────────────────────────────
   const liveLlmResponse = await tryLiveLlmCall(clinicId, userMessage, history, lang, customGroqKey, customOpenaiKey);
   if (liveLlmResponse) {
+    // Check if the turn was an appointment booking request
+    const hasBookingIntent = text.includes('book') || text.includes('confirm') || text.includes('reserve') || text.includes('schedule') || text.includes('बुक') || text.includes('निश्चित') || text.includes('वेळ');
+    const parsed = parseNaturalDateTime(rawText, lang);
+    let toolResult: any = undefined;
+
+    if (hasBookingIntent && parsed && !parsed.is_contradiction && !parsed.is_out_of_hours) {
+      toolResult = await clinicTools.book_appointment({
+        clinic_id: clinicId,
+        doctor_id: '11111111-1111-1111-1111-111111111111',
+        patient_name: 'Patient (Caller)',
+        patient_phone: callerPhone,
+        start_at: `${parsed.date}T${parsed.time}:00Z`,
+        notes: `Autonomous Booking via AI Humanoid Receptionist [${lang.toUpperCase()}]`,
+      });
+
+      localStore.logCall({
+        clinic_id: clinicId,
+        caller_phone: callerPhone,
+        duration_seconds: 65,
+        call_intent: `Book Appointment (${lang.toUpperCase()})`,
+        outcome: 'BOOKED',
+        appointment_id: toolResult?.appointment?.id,
+      });
+    }
+
     return {
       reply: liveLlmResponse,
       language: lang,
       latency_ms: Date.now() - startTime,
+      tool_called: toolResult ? 'book_appointment' : undefined,
+      tool_result: toolResult,
+      call_outcome: toolResult ? 'BOOKED' : 'FAQ_ANSWERED',
     };
   }
 
