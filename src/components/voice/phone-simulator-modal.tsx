@@ -67,8 +67,8 @@ export function PhoneSimulatorModal() {
   const [isRecording, setIsRecording] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [currentEmotion, setCurrentEmotion] = useState<DetectedEmotion | null>(null);
-  const [selectedLang, setSelectedLang] = useState<'en' | 'hi' | 'mr'>('mr'); // Default Marathi
-  const [isHandsFree, setIsHandsFree] = useState(false); // Default false: Push-to-Talk to prevent speaker feedback loop
+  const [selectedLang, setSelectedLang] = useState<'en' | 'hi' | 'mr'>('en'); // Default English
+  const [isHandsFree, setIsHandsFree] = useState(true); // Default true: automated continuous voice loop
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   const recognitionRef = useRef<any>(null);
@@ -161,8 +161,12 @@ export function PhoneSimulatorModal() {
             onDone();
           };
 
-          await audio.play();
-          return;
+          try {
+            await audio.play();
+            return;
+          } catch (playErr) {
+            console.warn('[TTS] Audio element play rejected by browser autoplay policy, continuing to SpeechSynthesis:', playErr);
+          }
         }
       }
     } catch (err) {

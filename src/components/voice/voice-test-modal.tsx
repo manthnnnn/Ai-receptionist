@@ -46,7 +46,7 @@ export function VoiceTestModal() {
   const [isRecording, setIsRecording] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [isHandsFree, setIsHandsFree] = useState(true); // Default true for ChatGPT-like hands-free voice
-  const [selectedLang, setSelectedLang] = useState<'en' | 'hi' | 'mr'>('mr'); // Default Marathi for user
+  const [selectedLang, setSelectedLang] = useState<'en' | 'hi' | 'mr'>('en'); // Default English
   const [dialog, setDialog] = useState<DialogTurn[]>([]);
   const [statusText, setStatusText] = useState('Ready');
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
