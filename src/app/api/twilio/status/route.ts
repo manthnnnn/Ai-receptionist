@@ -1,45 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { localStore } from '@/lib/store/local-store';
+import { CallOutcome } from '@/types';
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData().catch(() => new FormData());
-    const callSid = (formData.get('CallSid') as string) || '';
-    const callDuration = formData.get('CallDuration') as string;
-    const callStatus = (formData.get('CallStatus') as string) || 'completed';
-    const fromNumber = (formData.get('From') as string) || '+91-UNKNOWN';
-    const toNumber = (formData.get('To') as string) || '';
-    const durationSec = callDuration ? parseInt(callDuration, 10) : 0;
-    const timestamp = formData.get('Timestamp') as string || new Date().toISOString();
+    let callSid = '';
+    let callDuration = '';
+    let callStatus = '';
+    let fromNumber = '';
+    let toNumber = '';
+    let timestamp = '';
+
+    const contentType = req.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json')) {
+      const json = await req.json().catch(() => ({}));
+      callSid = json.CallSid || json.call_sid || json.id || '';
+      callDuration = json.CallDuration || json.duration_seconds || json.duration || '';
+      callStatus = json.CallStatus || json.call_status || json.status || 'completed';
+      fromNumber = json.From || json.from || json.caller_phone || '+91-UNKNOWN';
+      toNumber = json.To || json.to || '';
+      timestamp = json.Timestamp || json.timestamp || json.ended_at || new Date().toISOString();
+    } else {
+      const formData = await req.formData().catch(() => new FormData());
+      callSid = (formData.get('CallSid') as string) || (formData.get('call_sid') as string) || '';
+      callDuration = (formData.get('CallDuration') as string) || (formData.get('duration_seconds') as string) || '';
+      callStatus = (formData.get('CallStatus') as string) || (formData.get('status') as string) || 'completed';
+      fromNumber = (formData.get('From') as string) || '+91-UNKNOWN';
+      toNumber = (formData.get('To') as string) || '';
+      timestamp = (formData.get('Timestamp') as string) || new Date().toISOString();
+    }
+
+    const durationSec = callDuration ? parseInt(String(callDuration), 10) : 0;
+    const normStatus = (callStatus || 'completed').toLowerCase();
+
+    // Map Twilio CallStatus to terminal outcome per PRD Section 4
+    let terminalOutcome: CallOutcome = 'FAQ_ANSWERED';
+    if (normStatus === 'no-answer' || normStatus === 'canceled' || normStatus === 'cancelled') {
+      terminalOutcome = 'ABANDONED';
+    } else if (normStatus === 'busy' || normStatus === 'failed') {
+      terminalOutcome = 'ESCALATED';
+    } else if (normStatus === 'completed') {
+      terminalOutcome = 'FAQ_ANSWERED';
+    }
 
     const clinic = toNumber ? localStore.getClinicByPhone(toNumber) : localStore.getClinics()[0];
     const clinicId = clinic?.id || '00000000-0000-0000-0000-000000000001';
 
-    // Map Twilio CallStatus to outcome if needed
-    let outcome: 'BOOKED' | 'ESCALATED' | 'FAQ_ANSWERED' | 'CANCELLED' | 'RESCHEDULED' = 'FAQ_ANSWERED';
-    if (callStatus === 'no-answer' || callStatus === 'busy' || callStatus === 'failed') {
-      outcome = 'ESCALATED';
-    }
-
-    // Check if call log exists and update, or create a new one
+    // Find and update existing call log by callSid or create terminal log
     const existing = callSid ? localStore.getCallLogBySid(callSid) : undefined;
     if (existing) {
+      // Preserve existing higher-priority outcomes (BOOKED, RESCHEDULED, CANCELLED)
+      const finalOutcome: CallOutcome = (
+        existing.outcome === 'BOOKED' ||
+        existing.outcome === 'RESCHEDULED' ||
+        existing.outcome === 'CANCELLED' ||
+        existing.outcome === 'ESCALATED'
+      ) ? existing.outcome : terminalOutcome;
+
       localStore.updateCallLog(callSid, {
-        duration_seconds: durationSec || existing.duration_seconds,
-        ended_at: timestamp,
-        outcome: existing.outcome || outcome,
+        duration_seconds: durationSec > 0 ? durationSec : existing.duration_seconds,
+        ended_at: timestamp || new Date().toISOString(),
+        outcome: finalOutcome,
+        transfer_status: normStatus === 'busy' || normStatus === 'failed' ? 'ESCALATED_TO_HUMAN' : undefined,
       });
-    } else {
+    } else if (callSid) {
       localStore.logCall({
-        id: callSid || `call-${Date.now()}`,
+        id: callSid,
         clinic_id: clinicId,
         caller_phone: fromNumber,
         started_at: new Date(Date.now() - (durationSec * 1000)).toISOString(),
-        ended_at: timestamp,
+        ended_at: timestamp || new Date().toISOString(),
         duration_seconds: durationSec,
         call_intent: 'Inbound Twilio Call',
-        outcome,
-        transcript_preview: `Call completed with status: ${callStatus}, duration: ${durationSec}s`,
+        outcome: terminalOutcome,
+        transfer_status: normStatus === 'busy' || normStatus === 'failed' ? 'ESCALATED_TO_HUMAN' : undefined,
+        transcript_preview: `Twilio call finished with terminal status: ${callStatus} (${durationSec}s)`,
       });
     }
 
@@ -48,7 +84,8 @@ export async function POST(req: NextRequest) {
       call_sid: callSid,
       call_status: callStatus,
       duration_seconds: durationSec,
-      timestamp,
+      ended_at: timestamp,
+      outcome: existing?.outcome || terminalOutcome,
     });
   } catch (error: any) {
     console.error('Error in Twilio Status Webhook:', error);
@@ -57,9 +94,22 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const callSid = searchParams.get('call_sid') || searchParams.get('CallSid');
+
+  if (callSid) {
+    const log = localStore.getCallLogBySid(callSid);
+    if (log) {
+      return NextResponse.json({
+        success: true,
+        call_log: log,
+      });
+    }
+  }
+
   return NextResponse.json({
     success: true,
-    message: 'Twilio status callback endpoint active and operational',
+    message: 'Twilio Status Callback webhook is active and healthy.',
+    endpoint: '/api/twilio/status',
   });
 }
-

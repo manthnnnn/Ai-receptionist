@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useClinic } from '@/components/layout/clinic-context';
-import { CallLog, DialogueTurn } from '@/types';
-import { Phone, X, Zap, Globe, Clock, PhoneCall, RefreshCw, ShieldCheck } from 'lucide-react';
+import { CallLog, DialogueTurn, Message, Conversation } from '@/types';
+import { Phone, X, Zap, Globe, Clock, PhoneCall, RefreshCw, ShieldCheck, MessageSquare, Wrench } from 'lucide-react';
 import { formatDuration } from '@/lib/utils';
 
 const LANG_LABELS: Record<string, { label: string; color: string }> = {
@@ -34,46 +34,13 @@ function LatencyBadge({ ms }: { ms?: number }) {
   );
 }
 
-function DialogueBubble({ turn }: { turn: DialogueTurn }) {
-  const isAI = turn.speaker === 'ai';
-  return (
-    <div className={`flex gap-2.5 ${isAI ? 'flex-row' : 'flex-row-reverse'}`}>
-      <div
-        className={`w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold ${
-          isAI ? 'bg-gradient-to-br from-gcore-orange to-amber-700 text-white' : 'bg-neutral-800 text-neutral-200 border border-white/10'
-        }`}
-      >
-        {isAI ? 'AI' : 'P'}
-      </div>
-      <div className={`flex flex-col gap-1 max-w-[82%] ${isAI ? 'items-start' : 'items-end'}`}>
-        <div
-          className={`rounded-apple-lg px-3.5 py-2.5 text-xs leading-relaxed ${
-            isAI
-              ? 'bg-neutral-900 text-white border border-white/10'
-              : 'bg-white/[0.04] text-neutral-200 border border-white/[0.08]'
-          }`}
-        >
-          {turn.text}
-        </div>
-        <div className="flex items-center gap-2 px-1 text-[10px] text-neutral-400">
-          {isAI && turn.latency_ms && <LatencyBadge ms={turn.latency_ms} />}
-          {isAI && turn.tool_called && (
-            <span className="font-mono text-orange-300 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
-              🔧 {turn.tool_called}
-            </span>
-          )}
-          {isAI && turn.language && <LanguageBadge lang={turn.language} />}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function CallsPage() {
   const { activeClinicId, activeClinic, setIsPhoneSimulatorOpen } = useClinic();
   const [calls, setCalls] = useState<CallLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCall, setSelectedCall] = useState<CallLog | null>(null);
+  const [conversationData, setConversationData] = useState<{ conversation: Conversation; messages: Message[] } | null>(null);
+  const [loadingConv, setLoadingConv] = useState(false);
 
   const fetchCalls = () => {
     setLoading(true);
@@ -90,6 +57,32 @@ export default function CallsPage() {
     fetchCalls();
   }, [activeClinicId]);
 
+  // When a call is selected, fetch deep conversation & message records from /api/conversations
+  useEffect(() => {
+    if (selectedCall) {
+      setLoadingConv(true);
+      fetch(`/api/conversations?call_id=${selectedCall.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setConversationData({
+              conversation: data.conversation,
+              messages: data.messages || [],
+            });
+          } else {
+            setConversationData(null);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load conversation details:', err);
+          setConversationData(null);
+        })
+        .finally(() => setLoadingConv(false));
+    } else {
+      setConversationData(null);
+    }
+  }, [selectedCall]);
+
   const callList = Array.isArray(calls) ? calls : [];
 
   return (
@@ -105,7 +98,7 @@ export default function CallsPage() {
           </h1>
           <p className="text-xs text-neutral-400 mt-0.5 flex items-center gap-1.5 font-medium">
             <span className="status-dot bg-gcore-orange animate-pulse"></span>
-            Inbound telephony recordings, speaker-labeled transcripts &amp; latency tracking
+            Inbound telephony recordings, speaker-labeled transcripts &amp; latency tracking (Tables 13 &amp; 14)
           </p>
         </div>
 
@@ -201,6 +194,11 @@ export default function CallsPage() {
                           <span className="status-dot bg-amber-400"></span>
                           Escalated
                         </span>
+                      ) : c.outcome === 'ABANDONED' ? (
+                        <span className="inline-flex items-center gap-1.5 text-[11px] font-mono px-2 py-0.5 rounded-full text-rose-400 bg-rose-950/40 border border-rose-800/30">
+                          <span className="status-dot bg-rose-400"></span>
+                          Abandoned
+                        </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 text-[11px] font-mono px-2 py-0.5 rounded-full text-neutral-300 bg-white/5 border border-white/10">
                           <span className="status-dot bg-neutral-400"></span>
@@ -232,9 +230,9 @@ export default function CallsPage() {
             <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between shrink-0">
               <div>
                 <h3 className="font-bold text-white text-[15px] tracking-tight">
-                  Call Dialogue &amp; Analytics
+                  Call Dialogue &amp; Analytics (Schema Tables 13 &amp; 14)
                 </h3>
-                <p className="text-xs text-neutral-400 font-mono mt-0.5">{selectedCall.caller_phone}</p>
+                <p className="text-xs text-neutral-400 font-mono mt-0.5">{selectedCall.caller_phone} · ID: {selectedCall.id}</p>
               </div>
               <button
                 onClick={() => setSelectedCall(null)}
@@ -274,16 +272,94 @@ export default function CallsPage() {
 
             {/* Dialogue Turns */}
             <div className="px-6 py-4 overflow-y-auto flex-1">
-              <h4 className="font-semibold text-white mb-3 text-[13px] flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-gcore-orange" />
-                Dialogue ({selectedCall.dialogue_turns?.length || 0} turns)
+              <h4 className="font-semibold text-white mb-3 text-[13px] flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-gcore-orange" />
+                  Dialogue Turns ({conversationData?.messages?.length || selectedCall.dialogue_turns?.length || 0} messages)
+                </span>
+                {conversationData?.conversation && (
+                  <span className="text-[10px] font-mono text-neutral-500">
+                    Conv: {conversationData.conversation.id}
+                  </span>
+                )}
               </h4>
 
-              {selectedCall.dialogue_turns && selectedCall.dialogue_turns.length > 0 ? (
+              {loadingConv ? (
+                <div className="text-center py-8 text-xs text-neutral-400">
+                  Loading conversation messages...
+                </div>
+              ) : conversationData?.messages && conversationData.messages.length > 0 ? (
                 <div className="space-y-3">
-                  {selectedCall.dialogue_turns.map((turn) => (
-                    <DialogueBubble key={turn.turn_index} turn={turn} />
-                  ))}
+                  {conversationData.messages.map((m) => {
+                    const isAi = m.speaker === 'RECEPTIONIST';
+                    return (
+                      <div key={m.id} className={`flex gap-2.5 ${isAi ? 'flex-row' : 'flex-row-reverse'}`}>
+                        <div
+                          className={`w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold ${
+                            isAi ? 'bg-gradient-to-br from-gcore-orange to-amber-700 text-white' : 'bg-neutral-800 text-neutral-200 border border-white/10'
+                          }`}
+                        >
+                          {isAi ? 'AI' : 'P'}
+                        </div>
+                        <div className={`flex flex-col gap-1 max-w-[82%] ${isAi ? 'items-start' : 'items-end'}`}>
+                          <div
+                            className={`rounded-apple-lg px-3.5 py-2.5 text-xs leading-relaxed ${
+                              isAi
+                                ? 'bg-neutral-900 text-white border border-white/10'
+                                : 'bg-white/[0.04] text-neutral-200 border border-white/[0.08]'
+                            }`}
+                          >
+                            {m.content}
+                          </div>
+                          <div className="flex items-center gap-2 px-1 text-[10px] text-neutral-400 font-mono">
+                            {isAi && m.latency_ms && <LatencyBadge ms={m.latency_ms} />}
+                            {isAi && m.tool_called && (
+                              <span className="text-orange-300 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                <Wrench className="w-2.5 h-2.5" />
+                                {m.tool_called}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : selectedCall.dialogue_turns && selectedCall.dialogue_turns.length > 0 ? (
+                <div className="space-y-3">
+                  {selectedCall.dialogue_turns.map((turn) => {
+                    const isAI = turn.speaker === 'ai';
+                    return (
+                      <div key={turn.turn_index} className={`flex gap-2.5 ${isAI ? 'flex-row' : 'flex-row-reverse'}`}>
+                        <div
+                          className={`w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold ${
+                            isAI ? 'bg-gradient-to-br from-gcore-orange to-amber-700 text-white' : 'bg-neutral-800 text-neutral-200 border border-white/10'
+                          }`}
+                        >
+                          {isAI ? 'AI' : 'P'}
+                        </div>
+                        <div className={`flex flex-col gap-1 max-w-[82%] ${isAI ? 'items-start' : 'items-end'}`}>
+                          <div
+                            className={`rounded-apple-lg px-3.5 py-2.5 text-xs leading-relaxed ${
+                              isAI
+                                ? 'bg-neutral-900 text-white border border-white/10'
+                                : 'bg-white/[0.04] text-neutral-200 border border-white/[0.08]'
+                            }`}
+                          >
+                            {turn.text}
+                          </div>
+                          <div className="flex items-center gap-2 px-1 text-[10px] text-neutral-400">
+                            {isAI && turn.latency_ms && <LatencyBadge ms={turn.latency_ms} />}
+                            {isAI && turn.tool_called && (
+                              <span className="font-mono text-orange-300 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
+                                🔧 {turn.tool_called}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="bg-white/[0.03] border border-white/10 text-neutral-300 p-4 rounded-apple-lg space-y-3 font-mono text-[11px] leading-relaxed">
@@ -293,12 +369,6 @@ export default function CallsPage() {
                   <p>
                     <strong className="text-amber-300">Caller:</strong>{' '}
                     {selectedCall.transcript_preview || 'I would like to know about specialist fees and available slots.'}
-                  </p>
-                  <p>
-                    <strong className="text-orange-400">AI:</strong>{' '}
-                    {selectedCall.outcome === 'BOOKED'
-                      ? 'Your appointment has been confirmed. A confirmation SMS and WhatsApp message has been dispatched.'
-                      : 'Our general consultation fee is ₹500. Specialized endodontic and orthodontic consultations are ₹750–₹800.'}
                   </p>
                 </div>
               )}
