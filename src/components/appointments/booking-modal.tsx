@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useClinic } from '../layout/clinic-context';
 import { Doctor } from '@/types';
-import { X, Calendar, Clock, CheckCircle2, AlertCircle, User, Phone, Stethoscope, FileText } from 'lucide-react';
+import { X, Calendar, Clock, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 
 export function BookingModal() {
-  const { isManualBookingOpen, setIsManualBookingOpen, activeClinicId, refreshData } = useClinic();
+  const { isManualBookingOpen, setIsManualBookingOpen, activeClinicId, activeClinic, refreshData } = useClinic();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
   const [appointmentDate, setAppointmentDate] = useState<string>('');
@@ -18,6 +18,8 @@ export function BookingModal() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const inputClass = "w-full bg-black border border-white/10 rounded-apple px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-gcore-orange transition-apple placeholder:text-neutral-600";
 
   useEffect(() => {
     const tomorrow = new Date();
@@ -58,7 +60,7 @@ export function BookingModal() {
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSlot || !patientName || !patientPhone) {
-      setError('Please select a slot and fill in patient details');
+      setError('Please select a slot and provide patient details');
       return;
     }
 
@@ -86,14 +88,14 @@ export function BookingModal() {
       if (!data.success) {
         setError(data.message || 'Failed to book slot');
       } else {
-        setSuccess('Appointment confirmed successfully!');
+        setSuccess('Appointment confirmed with atomic locking & SMS/WhatsApp dispatched');
         refreshData();
         setTimeout(() => {
           setIsManualBookingOpen(false);
           setSuccess(null);
           setPatientName('');
           setNotes('');
-        }, 1400);
+        }, 1200);
       }
     } catch (err: any) {
       setError(err.message || 'Booking error');
@@ -104,65 +106,53 @@ export function BookingModal() {
 
   if (!isManualBookingOpen) return null;
 
-  const inputClass = 'gcore-input';
-  const labelClass = 'block text-[11px] font-semibold uppercase tracking-widest mb-1.5';
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
-      <div
-        className="gcore-card w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-scale-in flex flex-col"
-        style={{ maxHeight: '92vh' }}
-      >
-        {/* ── Header ── */}
-        <div className="px-6 py-4 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-orange-500/15 border border-orange-500/25 flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-orange-400" strokeWidth={2} />
-            </div>
-            <div>
-              <h3 className="font-bold text-[15px] tracking-tight" style={{ color: 'var(--text-primary)' }}>New Appointment</h3>
-              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Fill in the details below to confirm</p>
-            </div>
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+      <div className="gcore-card border border-white/15 w-full max-w-lg rounded-apple-xl shadow-2xl overflow-hidden animate-scale-in bg-black text-white">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-white text-[15px] tracking-tight flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-gcore-orange" />
+              New Patient Booking
+            </h3>
+            <p className="text-xs text-neutral-400 mt-0.5">{activeClinic?.name || 'Apollo Dental Clinic'}</p>
           </div>
           <button
             onClick={() => setIsManualBookingOpen(false)}
-            className="p-1.5 rounded-lg transition-all hover:bg-black/5"
-            style={{ color: 'var(--text-muted)' }}
+            className="text-neutral-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-apple"
           >
             <X className="w-5 h-5" strokeWidth={1.5} />
           </button>
         </div>
 
-        {/* ── Form ── */}
-        <form onSubmit={handleBooking} className="p-6 space-y-4 overflow-y-auto flex-1">
-          {/* Alerts */}
+        {/* Form */}
+        <form onSubmit={handleBooking} className="p-6 space-y-4 text-xs">
           {error && (
-            <div className="flex items-center gap-2.5 bg-rose-500/10 border border-rose-500/25 text-rose-400 text-[12px] px-4 py-3 rounded-xl animate-slide-up">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+            <div className="flex items-center gap-2 bg-rose-950/40 border border-rose-800/40 text-rose-300 text-xs px-3.5 py-2.5 rounded-apple">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
               <span className="font-medium">{error}</span>
             </div>
           )}
+
           {success && (
-            <div className="flex items-center gap-2.5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[12px] px-4 py-3 rounded-xl animate-slide-up">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
-              <span className="font-medium">{success}</span>
+            <div className="flex items-center gap-2 bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 text-xs px-3.5 py-2.5 rounded-apple font-medium">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+              <span>{success}</span>
             </div>
           )}
 
           {/* Doctor */}
           <div>
-            <label className={labelClass}>
-              <span className="flex items-center gap-1.5"><Stethoscope className="w-3 h-3" /> Doctor</span>
-            </label>
+            <label className="block font-medium text-neutral-300 mb-1.5">Attending Doctor / Specialist</label>
             <select
               value={selectedDoctorId}
               onChange={(e) => setSelectedDoctorId(e.target.value)}
               className={inputClass}
-              style={{ colorScheme: 'dark' }}
             >
               {doctors.map((d) => (
-                <option key={d.id} value={d.id} style={{ background: '#111' }}>
-                  {d.name} — {d.specialty}
+                <option key={d.id} value={d.id} className="bg-black">
+                  {d.name} — {d.specialty} (₹{d.consultation_fee})
                 </option>
               ))}
             </select>
@@ -170,133 +160,98 @@ export function BookingModal() {
 
           {/* Date */}
           <div>
-            <label className={labelClass}>
-              <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3" /> Date</span>
-            </label>
+            <label className="block font-medium text-neutral-300 mb-1.5">Appointment Date</label>
             <input
               type="date"
               value={appointmentDate}
               onChange={(e) => setAppointmentDate(e.target.value)}
               className={inputClass}
-              style={{ colorScheme: 'dark' }}
             />
           </div>
 
-          {/* Time Slots */}
+          {/* Slots */}
           <div>
-            <label className={labelClass}>
-              <span className="flex items-center gap-1.5 justify-between w-full">
-                <span className="flex items-center gap-1.5">
-                  <Clock className="w-3 h-3" /> Available Slots
-                </span>
-                {availableSlots.length > 0 && (
-                  <span className="text-orange-400 font-semibold text-[11px] normal-case tracking-normal">
-                    {availableSlots.length} open
-                  </span>
-                )}
-              </span>
-            </label>
-
+            <div className="flex items-center justify-between font-medium text-neutral-300 mb-2">
+              <span>Available Time Slots</span>
+              <span className="text-[11px] text-orange-300 font-mono">{availableSlots.length} open slots</span>
+            </div>
             {availableSlots.length > 0 ? (
-              <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto p-0.5">
+              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-0.5">
                 {availableSlots.map((slot) => (
                   <button
                     type="button"
                     key={slot.time_24h}
                     onClick={() => setSelectedSlot(slot.time_24h)}
-                    className={`px-3.5 py-1.5 rounded-xl text-[12px] font-semibold border transition-all ${
+                    className={`px-3 py-1.5 rounded-apple text-xs font-mono font-medium border transition-apple ${
                       selectedSlot === slot.time_24h
-                        ? 'bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/20'
-                        : 'hover:border-orange-500/30'
+                        ? 'bg-gcore-orange text-white border-gcore-orange shadow-gcore-btn'
+                        : 'bg-black hover:bg-white/10 text-neutral-300 border-white/10'
                     }`}
-                  style={selectedSlot !== slot.time_24h ? {
-                    background: 'var(--surface-2)',
-                    color: 'var(--text-secondary)',
-                    borderColor: 'var(--border)',
-                  } : undefined}
                   >
                     {slot.time_formatted}
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="text-[12px] px-4 py-3.5 rounded-xl border border-dashed text-center" style={{ color: 'var(--text-muted)', borderColor: 'var(--border)', background: 'var(--surface-2)' }}>
-                No available slots on this date
-              </div>
+              <p className="text-xs text-neutral-500 bg-black p-3 rounded-apple border border-dashed border-white/10">
+                No slots available on this date. Please select another date.
+              </p>
             )}
           </div>
 
-          {/* Patient Name */}
-          <div>
-            <label className={labelClass}>
-              <span className="flex items-center gap-1.5"><User className="w-3 h-3" /> Patient Name</span>
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Rahul Sharma"
-              value={patientName}
-              onChange={(e) => setPatientName(e.target.value)}
-              required
-              className={inputClass}
-            />
-          </div>
-
-          {/* Patient Phone */}
-          <div>
-            <label className={labelClass}>
-              <span className="flex items-center gap-1.5"><Phone className="w-3 h-3" /> Phone Number</span>
-            </label>
-            <input
-              type="tel"
-              placeholder="+91 98765 43210"
-              value={patientPhone}
-              onChange={(e) => setPatientPhone(e.target.value)}
-              required
-              className={`${inputClass} font-mono tracking-wide`}
-            />
+          {/* Patient Details */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block font-medium text-neutral-300 mb-1.5">Patient Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Rahul Sharma"
+                value={patientName}
+                onChange={(e) => setPatientName(e.target.value)}
+                required
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block font-medium text-neutral-300 mb-1.5">Phone Number</label>
+              <input
+                type="tel"
+                placeholder="+91 98765 43210"
+                value={patientPhone}
+                onChange={(e) => setPatientPhone(e.target.value)}
+                required
+                className={`${inputClass} font-mono`}
+              />
+            </div>
           </div>
 
           {/* Notes */}
           <div>
-            <label className={labelClass}>
-              <span className="flex items-center gap-1.5"><FileText className="w-3 h-3" /> Notes <span className="text-white/20 normal-case tracking-normal font-normal">(optional)</span></span>
-            </label>
+            <label className="block font-medium text-neutral-300 mb-1.5">Chief Complaint / Visit Notes (Optional)</label>
             <textarea
               rows={2}
-              placeholder="Symptoms or chief complaint..."
+              placeholder="e.g. Routine cleaning and mild tooth sensitivity..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className={inputClass}
-              style={{ resize: 'none' }}
             />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
             <button
               type="button"
               onClick={() => setIsManualBookingOpen(false)}
-              className="px-5 py-2.5 rounded-xl text-[12px] font-semibold transition-all hover:bg-black/5"
-              style={{ color: 'var(--text-muted)' }}
+              className="gcore-btn-dark px-4 py-2 text-xs"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={loading || availableSlots.length === 0 || !selectedSlot}
-              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-[12px] px-6 py-2.5 rounded-xl shadow-lg shadow-orange-500/20 transition-all"
+              disabled={loading || availableSlots.length === 0}
+              className="gcore-btn-orange px-5 py-2 text-xs font-semibold shadow-gcore-btn disabled:opacity-50"
             >
-              {loading ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Confirming...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2.5} />
-                  Confirm Booking
-                </>
-              )}
+              {loading ? 'Confirming...' : 'Confirm & Dispatch Confirmation'}
             </button>
           </div>
         </form>

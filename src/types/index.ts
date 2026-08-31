@@ -102,8 +102,16 @@ export interface Patient {
   created_at: string;
 }
 
-export type AppointmentStatus = 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
-export type BookingSource = 'AI_VOICE' | 'MANUAL' | 'WEBRTC_DEMO';
+export type NotificationStatus = 'NOT_SENT' | 'QUEUED' | 'SENT' | 'DELIVERED' | 'FAILED';
+
+export interface NotificationLog {
+  channel: 'SMS' | 'WHATSAPP';
+  status: NotificationStatus;
+  sent_at: string;
+  recipient_phone: string;
+  message_preview: string;
+  provider: 'TWILIO' | 'GUPSHUP' | 'SIMULATED';
+}
 
 export interface Appointment {
   id: string;
@@ -122,6 +130,10 @@ export interface Appointment {
   notes?: string;
   cancelled_at?: string;
   cancellation_reason?: string;
+  sms_status?: NotificationStatus;
+  whatsapp_status?: NotificationStatus;
+  last_notified_at?: string;
+  notification_logs?: NotificationLog[];
   created_at: string;
 }
 

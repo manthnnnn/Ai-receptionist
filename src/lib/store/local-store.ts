@@ -225,6 +225,8 @@ class LocalStore {
         end_at: `${tomorrowStr}T11:30:00Z`,
         status: 'CONFIRMED',
         booking_source: 'AI_VOICE',
+        sms_status: 'DELIVERED',
+        whatsapp_status: 'DELIVERED',
         notes: 'Follow-up root canal crown measurement',
         created_at: new Date().toISOString(),
       },
@@ -241,6 +243,8 @@ class LocalStore {
         end_at: `${tomorrowStr}T17:00:00Z`,
         status: 'CONFIRMED',
         booking_source: 'AI_VOICE',
+        sms_status: 'DELIVERED',
+        whatsapp_status: 'DELIVERED',
         notes: 'Patient complained of mild molar sensitivity',
         created_at: new Date().toISOString(),
       },
@@ -257,6 +261,8 @@ class LocalStore {
         end_at: `${dayAfterStr}T15:30:00Z`,
         status: 'CONFIRMED',
         booking_source: 'AI_VOICE',
+        sms_status: 'DELIVERED',
+        whatsapp_status: 'DELIVERED',
         notes: 'Clear aligner progress check',
         created_at: new Date().toISOString(),
       },
@@ -273,6 +279,8 @@ class LocalStore {
         end_at: `${tomorrowStr}T12:00:00Z`,
         status: 'CONFIRMED',
         booking_source: 'AI_VOICE',
+        sms_status: 'DELIVERED',
+        whatsapp_status: 'DELIVERED',
         notes: 'Consultation for acne scar laser',
         created_at: new Date().toISOString(),
       },
@@ -536,6 +544,8 @@ class LocalStore {
       end_at: payload.end_at,
       status: 'CONFIRMED',
       booking_source: payload.booking_source || 'AI_VOICE',
+      sms_status: 'DELIVERED',
+      whatsapp_status: 'DELIVERED',
       notes: payload.notes,
       created_at: new Date().toISOString(),
     };
@@ -547,6 +557,23 @@ class LocalStore {
       appointment: newAppointment,
       message: 'Appointment successfully confirmed.',
     };
+  }
+
+  updateAppointmentNotificationStatus(
+    appointmentId: string,
+    smsStatus: 'NOT_SENT' | 'QUEUED' | 'SENT' | 'DELIVERED' | 'FAILED',
+    whatsappStatus: 'NOT_SENT' | 'QUEUED' | 'SENT' | 'DELIVERED' | 'FAILED',
+    logs?: any[]
+  ): Appointment | undefined {
+    const app = this.appointments.find((a) => a.id === appointmentId);
+    if (!app) return undefined;
+    app.sms_status = smsStatus;
+    app.whatsapp_status = whatsappStatus;
+    app.last_notified_at = new Date().toISOString();
+    if (logs) {
+      app.notification_logs = [...(app.notification_logs || []), ...logs];
+    }
+    return app;
   }
 
   cancelAppointment(appointmentId: string, reason: string = 'Cancelled via AI'): { success: boolean; message: string } {
@@ -723,5 +750,8 @@ class LocalStore {
 
 // Global Singleton for Local Store
 const globalForStore = globalThis as unknown as { localStore?: LocalStore };
+if (globalForStore.localStore) {
+  Object.setPrototypeOf(globalForStore.localStore, LocalStore.prototype);
+}
 export const localStore = globalForStore.localStore || new LocalStore();
 if (process.env.NODE_ENV !== 'production') globalForStore.localStore = localStore;

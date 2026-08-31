@@ -8,12 +8,23 @@ export async function GET(req: NextRequest) {
     const date = searchParams.get('date') || undefined;
     const doctorId = searchParams.get('doctor_id') || undefined;
     const status = searchParams.get('status') || undefined;
+    const query = searchParams.get('query') || undefined;
 
-    const appointments = localStore.getAppointments(clinicId, {
+    let appointments = localStore.getAppointments(clinicId, {
       date,
       doctorId,
       status,
     });
+
+    if (query) {
+      const q = query.toLowerCase();
+      appointments = appointments.filter(
+        (a) =>
+          a.patient_name.toLowerCase().includes(q) ||
+          a.patient_phone.includes(q) ||
+          (a.doctor_name && a.doctor_name.toLowerCase().includes(q))
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -41,8 +52,10 @@ export async function POST(req: NextRequest) {
     const durationMins = doctor?.consultation_duration_minutes || 30;
     const calculatedEndAt = end_at || new Date(new Date(start_at).getTime() + durationMins * 60000).toISOString();
 
+    const clinicId = clinic_id || '00000000-0000-0000-0000-000000000001';
+
     const result = localStore.bookAppointmentAtomic({
-      clinic_id: clinic_id || '00000000-0000-0000-0000-000000000001',
+      clinic_id: clinicId,
       doctor_id,
       patient_name,
       patient_phone,
