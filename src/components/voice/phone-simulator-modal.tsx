@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useClinic } from '../layout/clinic-context';
-import { Phone, PhoneOff, Mic, MicOff, X, Volume2, ShieldCheck, Radio, Send, Sparkles, AlertCircle } from 'lucide-react';
+import { Phone, PhoneOff, Mic, MicOff, X, Volume2, ShieldCheck, Radio, Send, Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
 
 function cleanSpeechText(text: string, lang: 'mr' | 'hi' | 'en'): string {
   let cleaned = text;
@@ -36,142 +36,131 @@ export function PhoneSimulatorModal() {
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
-  const [selectedLang, setSelectedLang] = useState<'en' | 'hi' | 'mr'>('en'); // Default English
-  const [isHandsFree, setIsHandsFree] = useState(true);
+  const [selectedLang, setSelectedLang] = useState<'en' | 'hi' | 'mr'>('en');
+  const [isHandsFree, setIsHandsFree] = useState(true); // Default true for continuous auto conversation
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [currentCallId, setCurrentCallId] = useState<string>('');
+  const [callDuration, setCallDuration] = useState(0);
 
   const recognitionRef = useRef<any>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const isHandsFreeRef = useRef(isHandsFree);
   const selectedLangRef = useRef(selectedLang);
+  const isAiSpeakingRef = useRef(isAiSpeaking);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   isHandsFreeRef.current = isHandsFree;
   selectedLangRef.current = selectedLang;
+  isAiSpeakingRef.current = isAiSpeaking;
 
   // Auto-scroll messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Call timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isPhoneSimulatorOpen) {
+      setCallDuration(0);
+      interval = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isPhoneSimulatorOpen]);
+
   // Load browser voices
   useEffect(() => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       const updateVoices = () => {
-        setAvailableVoices(window.speechSynthesis.getVoices());
+        const v = window.speechSynthesis.getVoices();
+        setAvailableVoices(v);
       };
       updateVoices();
       window.speechSynthesis.onvoiceschanged = updateVoices;
     }
   }, []);
 
-  // Voice playback engine (Neural TTS + Browser SpeechSynthesis fallback)
-  const speakText = useCallback(async (text: string, lang: 'mr' | 'hi' | 'en') => {
-    setIsAiSpeaking(true);
-
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-
-    const spokenText = cleanSpeechText(text, lang);
-
-    // 1. Try Neural TTS API first
-    try {
-      const res = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: spokenText, lang }),
-      });
-
-      if (res.ok && res.status === 200) {
-        const blob = await res.blob();
-        if (blob.size > 100) {
-          const audioUrl = URL.createObjectURL(blob);
-          const audio = new Audio(audioUrl);
-          audioRef.current = audio;
-
-          audio.onended = () => {
-            setIsAiSpeaking(false);
-            URL.revokeObjectURL(audioUrl);
-            if (isHandsFreeRef.current) {
-              setTimeout(() => startListening(), 400);
-            }
-          };
-
-          audio.onerror = () => {
-            setIsAiSpeaking(false);
-            URL.revokeObjectURL(audioUrl);
-            fallbackSpeechSynthesis(spokenText, lang);
-          };
-
-          await audio.play();
-          return;
-        }
-      }
-    } catch (e) {
-      console.warn('Neural TTS failed, falling back to browser synthesis:', e);
-    }
-
-    // 2. Fallback to Browser SpeechSynthesis
-    fallbackSpeechSynthesis(spokenText, lang);
-  }, []);
-
-  const fallbackSpeechSynthesis = (spokenText: string, lang: 'mr' | 'hi' | 'en') => {
+  // Direct, instant, unblockable speech engine
+  const playSpeech = useCallback((text: string, lang: 'mr' | 'hi' | 'en', onDone?: () => void) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       setIsAiSpeaking(false);
+      if (onDone) onDone();
       return;
     }
 
-    const utter = new SpeechSynthesisUtterance(spokenText);
-    utter.rate = 1.02;
-    utter.pitch = 1.02;
+    try {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
 
-    const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
-    let selectedVoice = null;
+      setIsAiSpeaking(true);
+      const clean = cleanSpeechText(text, lang);
+      const utter = new SpeechSynthesisUtterance(clean);
+      utter.rate = 1.0;
+      utter.pitch = 1.02;
+      utter.volume = 1.0;
 
-    if (lang === 'mr') {
-      utter.lang = 'mr-IN';
-      selectedVoice =
-        voices.find((v) => v.name.toLowerCase().includes('marathi') || v.lang.includes('mr')) ||
-        voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara'))) ||
-        voices.find((v) => v.name.includes('hi') || v.lang.includes('hi')) ||
-        voices.find((v) => v.name.includes('en-IN') || v.lang.includes('en-IN'));
-    } else if (lang === 'hi') {
-      utter.lang = 'hi-IN';
-      selectedVoice =
-        voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara'))) ||
-        voices.find((v) => v.name.includes('hi') || v.name.toLowerCase().includes('hindi')) ||
-        voices.find((v) => v.name.includes('en-IN') || v.lang.includes('en-IN'));
-    } else {
-      utter.lang = 'en-IN';
-      selectedVoice =
-        voices.find((v) => v.name.includes('Natural') && (v.lang.includes('en-IN') || v.name.includes('Neerja'))) ||
-        voices.find((v) => v.name.includes('en-IN') || v.name.includes('India')) ||
-        voices.find((v) => v.lang.startsWith('en'));
-    }
+      const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
+      let selectedVoice: SpeechSynthesisVoice | null = null;
 
-    if (selectedVoice) utter.voice = selectedVoice;
-
-    utter.onend = () => {
-      setIsAiSpeaking(false);
-      if (isHandsFreeRef.current) {
-        setTimeout(() => startListening(), 400);
+      if (lang === 'mr') {
+        utter.lang = 'mr-IN';
+        selectedVoice =
+          voices.find((v) => v.lang === 'mr-IN' || v.name.toLowerCase().includes('marathi')) ||
+          voices.find((v) => v.lang.includes('hi') || v.name.toLowerCase().includes('hindi')) ||
+          voices.find((v) => v.name.includes('India') || v.lang === 'en-IN') ||
+          voices.find((v) => v.lang.startsWith('en')) ||
+          null;
+      } else if (lang === 'hi') {
+        utter.lang = 'hi-IN';
+        selectedVoice =
+          voices.find((v) => v.lang === 'hi-IN' || v.name.toLowerCase().includes('hindi') || v.name.includes('Swara')) ||
+          voices.find((v) => v.lang.includes('hi')) ||
+          voices.find((v) => v.name.includes('India') || v.lang === 'en-IN') ||
+          voices.find((v) => v.lang.startsWith('en')) ||
+          null;
+      } else {
+        utter.lang = 'en-IN';
+        selectedVoice =
+          voices.find((v) => v.lang === 'en-IN' || v.name.includes('Neerja') || v.name.includes('India')) ||
+          voices.find((v) => v.name.includes('Google') && v.lang.startsWith('en')) ||
+          voices.find((v) => v.lang.startsWith('en-US') || v.lang.startsWith('en-GB') || v.lang.startsWith('en')) ||
+          null;
       }
-    };
 
-    utter.onerror = () => {
+      if (selectedVoice) utter.voice = selectedVoice;
+
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        setIsAiSpeaking(false);
+        if (onDone) onDone();
+      };
+
+      utter.onend = finish;
+      utter.onerror = finish;
+
+      // Chrome speech un-pause watchdog
+      const watchdog = setInterval(() => {
+        if (!window.speechSynthesis.speaking) {
+          clearInterval(watchdog);
+        } else {
+          window.speechSynthesis.pause();
+          window.speechSynthesis.resume();
+        }
+      }, 4000);
+
+      window.speechSynthesis.speak(utter);
+      window.speechSynthesis.resume();
+    } catch (e) {
+      console.warn('SpeechSynthesis error:', e);
       setIsAiSpeaking(false);
-    };
+      if (onDone) onDone();
+    }
+  }, [availableVoices]);
 
-    window.speechSynthesis.speak(utter);
-  };
-
-  // Start Speech Recognition
+  // Automated Hands-Free Speech Recognition Loop
   const startListening = useCallback(() => {
     if (typeof window === 'undefined') return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -179,7 +168,9 @@ export function PhoneSimulatorModal() {
 
     try {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.abort();
+        } catch {}
       }
 
       const recognition = new SpeechRecognition();
@@ -189,23 +180,42 @@ export function PhoneSimulatorModal() {
       recognition.continuous = false;
       recognition.interimResults = false;
 
-      recognition.onstart = () => setIsRecording(true);
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setIsRecording(false);
-        handleSendUtterance(transcript);
+      recognition.onstart = () => {
+        setIsRecording(true);
       };
-      recognition.onerror = () => setIsRecording(false);
-      recognition.onend = () => setIsRecording(false);
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results?.[0]?.[0]?.transcript;
+        setIsRecording(false);
+        if (transcript && transcript.trim()) {
+          handleSendUtterance(transcript.trim());
+        }
+      };
+
+      recognition.onerror = (e: any) => {
+        setIsRecording(false);
+        // If hands-free is enabled and no speech was detected, gracefully auto-restart listening
+        if (isHandsFreeRef.current && !isAiSpeakingRef.current && e.error === 'no-speech') {
+          setTimeout(() => {
+            if (isHandsFreeRef.current && !isAiSpeakingRef.current) {
+              startListening();
+            }
+          }, 600);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
 
       recognition.start();
     } catch (err) {
-      console.warn('Speech recognition error:', err);
+      console.warn('Recognition start exception:', err);
       setIsRecording(false);
     }
   }, []);
 
-  // When modal opens or language changes, trigger initial greeting
+  // When modal opens or language changes, trigger initial greeting and automated listening loop
   useEffect(() => {
     if (isPhoneSimulatorOpen) {
       const callId = `sim-call-${Date.now()}`;
@@ -220,24 +230,37 @@ export function PhoneSimulatorModal() {
       }
 
       setMessages([{ speaker: 'ai', text: greeting, lang: selectedLang }]);
-      speakText(greeting, selectedLang);
+
+      // Speak greeting, then AUTOMATICALLY start listening hands-free!
+      playSpeech(greeting, selectedLang, () => {
+        if (isHandsFreeRef.current) {
+          setTimeout(() => startListening(), 400);
+        }
+      });
     } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.abort();
+        } catch {}
       }
+      setIsRecording(false);
+      setIsAiSpeaking(false);
     }
-  }, [isPhoneSimulatorOpen, selectedLang, activeClinic]);
+  }, [isPhoneSimulatorOpen, selectedLang, activeClinic, playSpeech, startListening]);
 
-  // Send Utterance to AI Orchestrator
+  // Send Utterance to AI Orchestrator & continue hands-free voice loop
   const handleSendUtterance = (text: string) => {
     if (!text.trim()) return;
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {}
+    }
+    setIsRecording(false);
 
     const userMessage = { speaker: 'user' as const, text, lang: selectedLangRef.current };
     setMessages((prev) => [...prev, userMessage]);
@@ -246,7 +269,6 @@ export function PhoneSimulatorModal() {
     const groqKey = typeof window !== 'undefined' ? localStorage.getItem('CLINIC_GROQ_API_KEY') || undefined : undefined;
     const openaiKey = typeof window !== 'undefined' ? localStorage.getItem('CLINIC_OPENAI_API_KEY') || undefined : undefined;
 
-    // Convert history format
     const history = messages.map((m) => ({
       role: m.speaker === 'user' ? ('user' as const) : ('assistant' as const),
       content: m.text,
@@ -271,19 +293,31 @@ export function PhoneSimulatorModal() {
         if (data.success && data.reply) {
           const turnLang = data.language || selectedLangRef.current;
           setMessages((prev) => [...prev, { speaker: 'ai', text: data.reply, lang: turnLang }]);
-          speakText(data.reply, turnLang);
+
+          // AI speaks, then automatically opens the mic for the caller's next turn!
+          playSpeech(data.reply, turnLang, () => {
+            if (isHandsFreeRef.current) {
+              setTimeout(() => startListening(), 400);
+            }
+          });
 
           if (data.tool_called === 'book_appointment' || data.tool_called === 'cancel_appointment' || data.tool_called === 'reschedule_appointment') {
             refreshData();
           }
         }
       })
-      .catch((err) => console.error('Chat error:', err));
+      .catch((err) => {
+        console.error('Chat turn error:', err);
+      });
   };
 
-  const handleMicClick = () => {
+  const handleMicToggle = () => {
     if (isRecording) {
-      if (recognitionRef.current) recognitionRef.current.stop();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
+      }
       setIsRecording(false);
     } else {
       startListening();
@@ -291,17 +325,21 @@ export function PhoneSimulatorModal() {
   };
 
   const handleClose = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.abort();
+      } catch {}
     }
     setIsPhoneSimulatorOpen(false);
+  };
+
+  const formatTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
   if (!isPhoneSimulatorOpen) return null;
@@ -331,18 +369,32 @@ export function PhoneSimulatorModal() {
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
       <div className="gcore-card border border-white/15 w-full max-w-lg rounded-apple-xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-scale-in bg-[#080808]">
         {/* Header */}
-        <div className="px-6 py-4 bg-black/90 border-b border-white/10 flex items-center justify-between">
+        <div className="px-5 py-3.5 bg-black/90 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-apple bg-gcore-orange/15 border border-gcore-orange/30 flex items-center justify-center text-gcore-orange shadow-gcore-chip">
               <Phone className="w-4 h-4" strokeWidth={2} />
             </div>
             <div>
-              <h3 className="font-bold text-white text-[15px] tracking-tight">Live Inbound Phone Simulator</h3>
-              <p className="text-xs text-neutral-400">PSTN &amp; Web Telephony · Real-Time Conversation</p>
+              <h3 className="font-bold text-white text-[14px] tracking-tight">Live Inbound Phone Simulator</h3>
+              <p className="text-[11px] text-neutral-400">Automated Hands-Free Conversation · Call Duration: <span className="font-mono text-white">{formatTimer(callDuration)}</span></p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Hands-Free Auto Mode Toggle */}
+            <button
+              onClick={() => setIsHandsFree(!isHandsFree)}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-apple flex items-center gap-1.5 ${
+                isHandsFree 
+                  ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300 shadow-sm' 
+                  : 'bg-black border-white/10 text-neutral-400'
+              }`}
+              title="Automated Hands-Free Voice: AI speaks and automatically listens back without manual clicks"
+            >
+              <Radio className={`w-3 h-3 ${isHandsFree ? 'animate-pulse text-emerald-400' : 'text-neutral-500'}`} />
+              <span>{isHandsFree ? 'Auto Hands-Free ON' : 'Manual Mic'}</span>
+            </button>
+
             {/* Language Selector */}
             <div className="flex items-center bg-black border border-white/10 rounded-lg p-0.5 text-xs">
               <button
@@ -380,24 +432,38 @@ export function PhoneSimulatorModal() {
           </div>
         </div>
 
-        {/* Call Active Display Card */}
-        <div className="p-5 bg-black/60 flex flex-col items-center text-center border-b border-white/10 relative">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gcore-orange to-amber-600 flex items-center justify-center text-white shadow-gcore-btn mb-2.5">
-            <Phone className="w-6 h-6 animate-pulse" strokeWidth={2} />
+        {/* Call Active Status Display Card */}
+        <div className="p-4 bg-black/60 flex flex-col items-center text-center border-b border-white/10 relative">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gcore-orange to-amber-600 flex items-center justify-center text-white shadow-gcore-btn mb-2">
+            <Phone className="w-5 h-5 animate-pulse" strokeWidth={2} />
           </div>
 
-          <h4 className="font-bold text-base text-white tracking-tight">{activeClinic?.name || 'Apollo Dental Clinic'}</h4>
-          <p className="text-xs text-neutral-400 font-mono mt-0.5">
+          <h4 className="font-bold text-sm text-white tracking-tight">{activeClinic?.name || 'Apollo Dental Clinic'}</h4>
+          <p className="text-[11px] text-neutral-400 font-mono">
             {activeClinic?.phone_number || '+91-80-4567-8901'}
           </p>
 
-          <div className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-mono font-medium text-emerald-300 bg-emerald-950/60 border border-emerald-800/40 px-3 py-1 rounded-full">
-            <span className="status-dot bg-emerald-400 animate-pulse"></span>
-            {isRecording ? '● Listening to Caller...' : isAiSpeaking ? '● AI Receptionist Speaking...' : 'Call Connected · Speak or Type'}
+          <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-mono font-medium px-3 py-1 rounded-full border transition-all duration-300">
+            {isAiSpeaking ? (
+              <span className="text-amber-300 bg-amber-950/60 border-amber-800/40 px-3 py-0.5 rounded-full flex items-center gap-1.5">
+                <Volume2 className="w-3.5 h-3.5 animate-pulse text-amber-400" />
+                <span>AI Speaking... (Listen)</span>
+              </span>
+            ) : isRecording ? (
+              <span className="text-emerald-300 bg-emerald-950/60 border-emerald-800/40 px-3 py-0.5 rounded-full flex items-center gap-1.5 animate-pulse">
+                <span className="status-dot bg-emerald-400"></span>
+                <span>Auto-Listening... Speak now!</span>
+              </span>
+            ) : (
+              <span className="text-neutral-400 bg-white/5 border-white/10 px-3 py-0.5 rounded-full flex items-center gap-1.5">
+                <span className="status-dot bg-gcore-orange"></span>
+                <span>Automated Call Connected</span>
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Conversation Dialogue Box */}
+        {/* Dialogue turns */}
         <div className="p-4 flex-1 overflow-y-auto space-y-3 min-h-[220px] max-h-[300px] bg-black/40 text-xs">
           {messages.map((m, idx) => (
             <div
@@ -414,18 +480,31 @@ export function PhoneSimulatorModal() {
                 <p className="font-normal">{m.text}</p>
               </div>
               <span className="text-[10px] text-neutral-500 mt-1 px-1 font-mono">
-                {m.speaker === 'user' ? 'Caller' : 'AI Receptionist Maya'}
+                {m.speaker === 'user' ? 'Caller (You)' : 'AI Receptionist Maya'}
               </span>
             </div>
           ))}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Quick Click Prompts */}
+        {/* Quick Prompts */}
         <div className="px-4 py-2.5 bg-black/80 border-t border-white/10">
-          <div className="text-[11px] text-neutral-400 font-medium mb-1.5 flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-gcore-orange" />
-            <span>Suggested prompts for testing:</span>
+          <div className="text-[11px] text-neutral-400 font-medium mb-1.5 flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-gcore-orange" />
+              <span>Tap to ask or speak naturally:</span>
+            </span>
+            <button
+              onClick={() => {
+                const latestAiMsg = messages.filter(m => m.speaker === 'ai').pop();
+                if (latestAiMsg) playSpeech(latestAiMsg.text, selectedLang);
+              }}
+              className="text-[10px] text-orange-300 hover:text-white flex items-center gap-1"
+              title="Replay last response sound"
+            >
+              <Volume2 className="w-3 h-3" />
+              <span>Replay Voice</span>
+            </button>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {quickPromptsByLang[selectedLang].map((chip) => (
@@ -440,7 +519,7 @@ export function PhoneSimulatorModal() {
           </div>
         </div>
 
-        {/* Text Input + Mic Bar */}
+        {/* Input Bar & Call Controls */}
         <div className="p-3.5 bg-black border-t border-white/10 flex flex-col gap-2.5">
           <form
             onSubmit={(e) => {
@@ -451,7 +530,7 @@ export function PhoneSimulatorModal() {
           >
             <input
               type="text"
-              placeholder={isRecording ? 'Listening from your mic...' : `Type a question or speak in ${selectedLang === 'mr' ? 'Marathi' : selectedLang === 'hi' ? 'Hindi' : 'English'}...`}
+              placeholder={isRecording ? 'Listening from your microphone...' : `Type a response or speak hands-free...`}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               className="flex-1 bg-[#111] border border-white/15 rounded-full px-4 py-2 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-gcore-orange"
@@ -466,18 +545,18 @@ export function PhoneSimulatorModal() {
             </button>
           </form>
 
-          {/* Action Buttons */}
+          {/* Buttons */}
           <div className="flex gap-2">
             <button
-              onClick={handleMicClick}
+              onClick={handleMicToggle}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-semibold transition-apple ${
                 isRecording
-                  ? 'bg-amber-500 text-white animate-pulse shadow-lg'
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white animate-pulse shadow-lg'
                   : 'gcore-btn-dark border-white/15 hover:border-gcore-orange/60 text-white'
               }`}
             >
-              {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-gcore-orange" />}
-              <span>{isRecording ? 'Stop Listening' : `Click to Speak (${selectedLang.toUpperCase()})`}</span>
+              {isRecording ? <Mic className="w-4 h-4 text-white" /> : <MicOff className="w-4 h-4 text-neutral-400" />}
+              <span>{isRecording ? '● Auto-Listening (Speak Now)' : 'Click to Enable Mic'}</span>
             </button>
 
             <button

@@ -44,7 +44,7 @@ export function VoiceTestModal() {
   const [isRecording, setIsRecording] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [isHandsFree, setIsHandsFree] = useState(true);
-  const [selectedLang, setSelectedLang] = useState<'en' | 'hi' | 'mr'>('en'); // Default English
+  const [selectedLang, setSelectedLang] = useState<'en' | 'hi' | 'mr'>('en');
   const [dialog, setDialog] = useState<DialogTurn[]>([]);
   const [inputText, setInputText] = useState('');
   const [statusText, setStatusText] = useState('Ready');
@@ -53,13 +53,14 @@ export function VoiceTestModal() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const recognitionRef = useRef<any>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const isHandsFreeRef = useRef(isHandsFree);
   const selectedLangRef = useRef(selectedLang);
+  const isAiSpeakingRef = useRef(isAiSpeaking);
   const dialogEndRef = useRef<HTMLDivElement>(null);
 
   isHandsFreeRef.current = isHandsFree;
   selectedLangRef.current = selectedLang;
+  isAiSpeakingRef.current = isAiSpeaking;
 
   // Auto-scroll messages
   useEffect(() => {
@@ -74,6 +75,143 @@ export function VoiceTestModal() {
       };
       updateVoices();
       window.speechSynthesis.onvoiceschanged = updateVoices;
+    }
+  }, []);
+
+  // Direct, instant, unblockable speech engine
+  const playSpeech = useCallback((text: string, lang: 'mr' | 'hi' | 'en', onDone?: () => void) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setIsAiSpeaking(false);
+      if (onDone) onDone();
+      return;
+    }
+
+    try {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
+
+      setIsAiSpeaking(true);
+      const clean = cleanSpeechText(text, lang);
+      const utter = new SpeechSynthesisUtterance(clean);
+      utter.rate = 1.0;
+      utter.pitch = 1.02;
+      utter.volume = 1.0;
+
+      const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
+      let selectedVoice: SpeechSynthesisVoice | null = null;
+
+      if (lang === 'mr') {
+        utter.lang = 'mr-IN';
+        selectedVoice =
+          voices.find((v) => v.lang === 'mr-IN' || v.name.toLowerCase().includes('marathi')) ||
+          voices.find((v) => v.lang.includes('hi') || v.name.toLowerCase().includes('hindi')) ||
+          voices.find((v) => v.name.includes('India') || v.lang === 'en-IN') ||
+          voices.find((v) => v.lang.startsWith('en')) ||
+          null;
+      } else if (lang === 'hi') {
+        utter.lang = 'hi-IN';
+        selectedVoice =
+          voices.find((v) => v.lang === 'hi-IN' || v.name.toLowerCase().includes('hindi') || v.name.includes('Swara')) ||
+          voices.find((v) => v.lang.includes('hi')) ||
+          voices.find((v) => v.name.includes('India') || v.lang === 'en-IN') ||
+          voices.find((v) => v.lang.startsWith('en')) ||
+          null;
+      } else {
+        utter.lang = 'en-IN';
+        selectedVoice =
+          voices.find((v) => v.lang === 'en-IN' || v.name.includes('Neerja') || v.name.includes('India')) ||
+          voices.find((v) => v.name.includes('Google') && v.lang.startsWith('en')) ||
+          voices.find((v) => v.lang.startsWith('en-US') || v.lang.startsWith('en-GB') || v.lang.startsWith('en')) ||
+          null;
+      }
+
+      if (selectedVoice) utter.voice = selectedVoice;
+
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        setIsAiSpeaking(false);
+        if (onDone) onDone();
+      };
+
+      utter.onend = finish;
+      utter.onerror = finish;
+
+      // Chrome speech un-pause watchdog
+      const watchdog = setInterval(() => {
+        if (!window.speechSynthesis.speaking) {
+          clearInterval(watchdog);
+        } else {
+          window.speechSynthesis.pause();
+          window.speechSynthesis.resume();
+        }
+      }, 4000);
+
+      window.speechSynthesis.speak(utter);
+      window.speechSynthesis.resume();
+    } catch (e) {
+      console.warn('SpeechSynthesis error:', e);
+      setIsAiSpeaking(false);
+      if (onDone) onDone();
+    }
+  }, [availableVoices]);
+
+  // Automated Hands-Free Speech Recognition Loop
+  const startListening = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setStatusText('Speech recognition not supported in this browser');
+      return;
+    }
+
+    try {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
+      }
+
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      const currentLang = selectedLangRef.current;
+      recognition.lang = currentLang === 'mr' ? 'mr-IN' : currentLang === 'hi' ? 'hi-IN' : 'en-IN';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsRecording(true);
+        setStatusText(currentLang === 'mr' ? '● ऐकत आहे, बोला...' : currentLang === 'hi' ? '● मैं सुन रही हूँ, बोलिए...' : '● Listening to user speech...');
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results?.[0]?.[0]?.transcript;
+        setIsRecording(false);
+        if (transcript && transcript.trim()) {
+          sendTurn(transcript.trim());
+        }
+      };
+
+      recognition.onerror = (e: any) => {
+        setIsRecording(false);
+        if (isHandsFreeRef.current && !isAiSpeakingRef.current && e.error === 'no-speech') {
+          setTimeout(() => {
+            if (isHandsFreeRef.current && !isAiSpeakingRef.current) {
+              startListening();
+            }
+          }, 600);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
+
+      recognition.start();
+    } catch (err) {
+      console.warn('Recognition start exception:', err);
+      setIsRecording(false);
     }
   }, []);
 
@@ -100,20 +238,25 @@ export function VoiceTestModal() {
         },
       ]);
 
-      speakWithNeuralVoice(text, selectedLang, () => {});
+      // Speak greeting, then automatically start listening hands-free
+      playSpeech(text, selectedLang, () => {
+        if (isHandsFreeRef.current) {
+          setTimeout(() => startListening(), 400);
+        }
+      });
     } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.abort();
+        } catch {}
       }
+      setIsRecording(false);
+      setIsAiSpeaking(false);
     }
-  }, [isVoiceTesterOpen, selectedLang, activeClinic]);
+  }, [isVoiceTesterOpen, selectedLang, activeClinic, playSpeech, startListening]);
 
   // Waveform animation renderer
   useEffect(() => {
@@ -159,170 +302,21 @@ export function VoiceTestModal() {
     return () => cancelAnimationFrame(animationId);
   }, [isRecording, isAiSpeaking]);
 
-  // Speech Recognition (Microphone)
-  const startListening = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setStatusText('Speech recognition not supported in this browser');
-      return;
-    }
-
-    try {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-
-      const recognition = new SpeechRecognition();
-      recognitionRef.current = recognition;
-      const currentLang = selectedLangRef.current;
-      recognition.lang = currentLang === 'mr' ? 'mr-IN' : currentLang === 'hi' ? 'hi-IN' : 'en-IN';
-      recognition.continuous = false;
-      recognition.interimResults = false;
-
-      recognition.onstart = () => {
-        setIsRecording(true);
-        setStatusText(currentLang === 'mr' ? '● ऐकत आहे, बोला...' : currentLang === 'hi' ? '● मैं सुन रही हूँ, बोलिए...' : '● Listening to speech...');
-      };
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setIsRecording(false);
-        sendTurn(transcript);
-      };
-
-      recognition.onerror = (e: any) => {
-        console.warn('Speech recognition error:', e);
-        setIsRecording(false);
-        setStatusText('Ready');
-      };
-
-      recognition.onend = () => {
-        setIsRecording(false);
-      };
-
-      recognition.start();
-    } catch (err) {
-      console.warn('Recognition start exception:', err);
-      setIsRecording(false);
-    }
-  }, []);
-
-  // Neural TTS Playback
-  const speakWithNeuralVoice = useCallback(async (
-    text: string,
-    lang: 'mr' | 'hi' | 'en',
-    onDone: () => void
-  ) => {
-    if (typeof window === 'undefined') return;
-
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-
-    const cleanText = cleanSpeechText(text, lang);
-
-    // 1. Try Neural TTS API first
-    try {
-      const ttsRes = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: cleanText, lang }),
-      });
-
-      if (ttsRes.ok && ttsRes.status === 200) {
-        const audioBlob = await ttsRes.blob();
-        if (audioBlob.size > 100) {
-          const audioUrl = URL.createObjectURL(audioBlob);
-          const audio = new Audio(audioUrl);
-          audioRef.current = audio;
-
-          audio.onended = () => {
-            URL.revokeObjectURL(audioUrl);
-            setIsAiSpeaking(false);
-            onDone();
-          };
-          audio.onerror = () => {
-            URL.revokeObjectURL(audioUrl);
-            setIsAiSpeaking(false);
-            onDone();
-          };
-
-          setIsAiSpeaking(true);
-          await audio.play();
-          return;
-        }
-      }
-    } catch (err) {
-      console.warn('TTS streaming failed, falling back to browser synthesis:', err);
-    }
-
-    // 2. Fallback to Browser SpeechSynthesis
-    if (!('speechSynthesis' in window)) {
-      onDone();
-      return;
-    }
-
-    const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
-    const utter = new SpeechSynthesisUtterance(cleanText);
-
-    let voice: SpeechSynthesisVoice | null = null;
-    if (lang === 'mr') {
-      utter.lang = 'mr-IN';
-      voice =
-        voices.find((v) => v.lang === 'mr-IN') ||
-        voices.find((v) => v.name.includes('Google') && (v.lang.includes('hi-IN') || v.name.includes('Swara'))) ||
-        voices.find((v) => v.name.includes('Microsoft') && v.lang.includes('hi-IN')) ||
-        voices.find((v) => v.lang.includes('hi-IN')) ||
-        voices.find((v) => v.name.includes('en-IN')) ||
-        null;
-    } else if (lang === 'hi') {
-      utter.lang = 'hi-IN';
-      voice =
-        voices.find((v) => v.name.includes('Google') && v.lang === 'hi-IN') ||
-        voices.find((v) => v.name.includes('Swara') || v.name.includes('Madhur')) ||
-        voices.find((v) => v.lang === 'hi-IN') ||
-        voices.find((v) => v.name.includes('en-IN')) ||
-        null;
-    } else {
-      utter.lang = 'en-IN';
-      voice =
-        voices.find((v) => v.name.includes('Google') && v.lang === 'en-IN') ||
-        voices.find((v) => v.name.includes('Neerja') || v.name.includes('Ravi')) ||
-        voices.find((v) => v.lang.startsWith('en')) ||
-        null;
-    }
-
-    if (voice) utter.voice = voice;
-    utter.rate = 1.02;
-    utter.pitch = 1.02;
-
-    setIsAiSpeaking(true);
-
-    utter.onend = () => {
-      setIsAiSpeaking(false);
-      onDone();
-    };
-    utter.onerror = () => {
-      setIsAiSpeaking(false);
-      onDone();
-    };
-
-    window.speechSynthesis.speak(utter);
-  }, [availableVoices]);
-
-  // Send turn to backend & handle speech response
+  // Send turn to backend & continue hands-free voice loop
   const sendTurn = async (userText: string) => {
     if (!userText.trim()) return;
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {}
+    }
+    setIsRecording(false);
 
     const userTurn: DialogTurn = { id: `usr-${Date.now()}`, speaker: 'caller', text: userText };
     setDialog((prev) => [...prev, userTurn]);
     setInputText('');
-    setStatusText('AI processing response...');
+    setStatusText('AI processing...');
 
     try {
       const groqKey = typeof window !== 'undefined' ? localStorage.getItem('CLINIC_GROQ_API_KEY') || undefined : undefined;
@@ -361,7 +355,7 @@ export function VoiceTestModal() {
         setDialog((prev) => [...prev, aiTurn]);
         setStatusText('Ready');
 
-        await speakWithNeuralVoice(data.reply, turnLang, () => {
+        playSpeech(data.reply, turnLang, () => {
           if (isHandsFreeRef.current) {
             setTimeout(() => startListening(), 400);
           }
@@ -379,7 +373,11 @@ export function VoiceTestModal() {
 
   const handleToggleMic = () => {
     if (isRecording) {
-      if (recognitionRef.current) recognitionRef.current.stop();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
+      }
       setIsRecording(false);
     } else {
       startListening();
@@ -387,15 +385,13 @@ export function VoiceTestModal() {
   };
 
   const handleClose = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.abort();
+      } catch {}
     }
     setIsVoiceTesterOpen(false);
   };
@@ -434,11 +430,11 @@ export function VoiceTestModal() {
             </div>
             <div>
               <h3 className="font-bold text-white text-[15px] tracking-tight">AI Receptionist Voice Console</h3>
-              <p className="text-xs text-neutral-400">Continuous Voice &amp; Live Tool Execution · Sub-300ms</p>
+              <p className="text-xs text-neutral-400">Automated Continuous Voice &amp; Tool Calling · Sub-300ms</p>
             </div>
           </div>
 
-          {/* Controls: Language Selector & Hands-Free Toggle */}
+          {/* Controls */}
           <div className="flex items-center gap-2">
             {/* Hands-Free Mode Toggle */}
             <button
@@ -448,10 +444,10 @@ export function VoiceTestModal() {
                   ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300 shadow-sm' 
                   : 'bg-black border-white/10 text-neutral-400'
               }`}
-              title="Hands-Free Continuous Voice: AI speaks and automatically listens back"
+              title="Hands-Free Continuous Voice: AI speaks and automatically listens back without button clicks"
             >
               <Radio className={`w-3 h-3 ${isHandsFree ? 'animate-pulse text-emerald-400' : 'text-neutral-500'}`} />
-              <span>{isHandsFree ? 'Hands-Free On' : 'Manual Mic'}</span>
+              <span>{isHandsFree ? 'Auto Hands-Free ON' : 'Manual Mic'}</span>
             </button>
 
             {/* Language Switcher */}
@@ -500,11 +496,11 @@ export function VoiceTestModal() {
                 Live Audio Stream ({selectedLang === 'en' ? 'English' : selectedLang === 'hi' ? 'Hindi' : 'Marathi'})
               </span>
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium ${
-                isRecording ? 'bg-gcore-orange/20 text-orange-300 border border-gcore-orange/40 animate-pulse' :
-                isAiSpeaking ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                isRecording ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse' :
+                isAiSpeaking ? 'bg-gcore-orange/20 text-orange-300 border border-gcore-orange/40 animate-pulse' :
                 'bg-neutral-900 text-neutral-400 border border-white/5'
               }`}>
-                {isRecording ? '● Listening to user...' : isAiSpeaking ? '● AI Speaking...' : statusText}
+                {isRecording ? '● Auto-Listening to your speech...' : isAiSpeaking ? '● AI Speaking (Listen)...' : statusText}
               </span>
             </div>
             <canvas ref={canvasRef} width={560} height={44} className="w-full h-11 rounded bg-black" />
@@ -534,7 +530,7 @@ export function VoiceTestModal() {
                 )}
               </div>
               <span className="text-[10px] text-neutral-500 mt-1 px-1 font-mono">
-                {turn.speaker === 'caller' ? 'Caller' : 'AI Receptionist Maya'}
+                {turn.speaker === 'caller' ? 'Caller (You)' : 'AI Receptionist Maya'}
               </span>
             </div>
           ))}
@@ -543,9 +539,22 @@ export function VoiceTestModal() {
 
         {/* Quick Clickable Prompts */}
         <div className="px-5 py-2.5 bg-black/80 border-t border-white/10">
-          <div className="text-[11px] text-neutral-400 font-medium mb-1.5 flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-gcore-orange" />
-            <span>Suggested prompts:</span>
+          <div className="text-[11px] text-neutral-400 font-medium mb-1.5 flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-gcore-orange" />
+              <span>Tap to ask or speak naturally:</span>
+            </span>
+            <button
+              onClick={() => {
+                const latestAiMsg = dialog.filter(m => m.speaker === 'ai').pop();
+                if (latestAiMsg) playSpeech(latestAiMsg.text, selectedLang);
+              }}
+              className="text-[10px] text-orange-300 hover:text-white flex items-center gap-1"
+              title="Replay last voice response"
+            >
+              <Volume2 className="w-3 h-3" />
+              <span>Replay Voice</span>
+            </button>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {quickPromptsByLang[selectedLang].map((prompt) => (
@@ -571,7 +580,7 @@ export function VoiceTestModal() {
           >
             <input
               type="text"
-              placeholder={isRecording ? 'Listening from your mic...' : `Type a question or message in ${selectedLang === 'en' ? 'English' : selectedLang === 'hi' ? 'Hindi' : 'Marathi'}...`}
+              placeholder={isRecording ? 'Auto-listening from your microphone...' : `Type a message or speak hands-free...`}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               className="flex-1 bg-[#111] border border-white/15 rounded-full px-4 py-2 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-gcore-orange"
@@ -598,12 +607,12 @@ export function VoiceTestModal() {
               onClick={handleToggleMic}
               className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold transition-apple ${
                 isRecording
-                  ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white animate-pulse shadow-lg'
                   : 'gcore-btn-orange shadow-gcore-btn'
               }`}
             >
-              {isRecording ? <MicOff className="w-4 h-4" strokeWidth={2} /> : <Mic className="w-4 h-4" strokeWidth={2} />}
-              <span>{isRecording ? 'Listening...' : `Click to Speak (${selectedLang.toUpperCase()})`}</span>
+              {isRecording ? <Mic className="w-4 h-4 text-white" /> : <MicOff className="w-4 h-4 text-neutral-400" />}
+              <span>{isRecording ? '● Auto-Listening (Speak Now)' : 'Enable Mic'}</span>
             </button>
           </div>
         </div>
