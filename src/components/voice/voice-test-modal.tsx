@@ -260,22 +260,15 @@ export function VoiceTestModal() {
     if (lang === 'mr') {
       utter.lang = 'mr-IN';
       voice =
-        voices.find(v => v.lang === 'mr-IN') ||
-        // Google Wavenet/Neural Indian voices
-        voices.find(v => v.name.includes('Google') && (v.lang.includes('hi-IN') || v.name.includes('Swara'))) ||
-        voices.find(v => v.name.includes('Microsoft') && v.lang.includes('hi-IN')) ||
-        voices.find(v => v.lang.includes('hi-IN')) ||
-        voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) ||
-        voices.find(v => v.name.includes('Samantha') || v.name.includes('Karen')) ||
+        voices.find(v => v.lang === 'mr-IN' || v.lang === 'mr' || v.name.toLowerCase().includes('marathi')) ||
+        voices.find(v => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur') || v.name.includes('Aarohi'))) ||
+        voices.find(v => v.lang.includes('hi') || v.name.toLowerCase().includes('hindi') || v.name.includes('Heera')) ||
         null;
     } else if (lang === 'hi') {
       utter.lang = 'hi-IN';
       voice =
-        voices.find(v => v.name.includes('Google') && v.lang === 'hi-IN') ||
-        voices.find(v => v.name === 'Swara' || v.name.includes('Swara')) ||
-        voices.find(v => v.lang === 'hi-IN') ||
-        voices.find(v => v.name.includes('Microsoft') && v.lang.includes('hi')) ||
-        voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) ||
+        voices.find(v => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
+        voices.find(v => v.lang.includes('hi') || v.lang === 'hi-IN' || v.name.toLowerCase().includes('hindi') || v.name.includes('Heera')) ||
         null;
     } else {
       utter.lang = 'en-IN';
