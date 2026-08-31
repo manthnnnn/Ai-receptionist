@@ -55,9 +55,12 @@ export function VoiceTestModal() {
   const recognitionRef = useRef<any>(null);
   const isHandsFreeRef = useRef(isHandsFree);
   const selectedLangRef = useRef(selectedLang);
+  const isAiSpeakingRef = useRef(isAiSpeaking);
+  const lastAiSpeechRef = useRef<string>('');
 
   isHandsFreeRef.current = isHandsFree;
   selectedLangRef.current = selectedLang;
+  isAiSpeakingRef.current = isAiSpeaking;
 
   // Load available browser voices
   useEffect(() => {
@@ -136,6 +139,8 @@ export function VoiceTestModal() {
   // Start Speech Recognition (Microphone)
   const startListening = useCallback(() => {
     if (typeof window === 'undefined') return;
+    if (isAiSpeakingRef.current) return;
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setStatusText('Speech recognition not supported in this browser');
@@ -144,7 +149,7 @@ export function VoiceTestModal() {
 
     try {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try { recognitionRef.current.abort(); } catch (_) {}
       }
 
       const recognition = new SpeechRecognition();
@@ -162,6 +167,16 @@ export function VoiceTestModal() {
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setIsRecording(false);
+
+        // Echo Rejection: Check if speech came from laptop speaker
+        const lastSpeech = lastAiSpeechRef.current.toLowerCase().replace(/[^a-z0-9\u0900-\u097F]/g, '');
+        const currentInput = transcript.toLowerCase().replace(/[^a-z0-9\u0900-\u097F]/g, '');
+        if (isAiSpeakingRef.current || (lastSpeech && currentInput && (lastSpeech.includes(currentInput) || currentInput.includes(lastSpeech)))) {
+          console.warn('[Echo Cancelled] Discarded speaker audio echo:', transcript);
+          setStatusText('Ready');
+          return;
+        }
+
         sendTurn(transcript);
       };
 
@@ -191,6 +206,9 @@ export function VoiceTestModal() {
     if (typeof window === 'undefined') return;
 
     const cleanText = cleanSpeechText(text, lang);
+    lastAiSpeechRef.current = cleanText;
+    setIsAiSpeaking(true);
+    isAiSpeakingRef.current = true;
 
     // ── TIER 1: ElevenLabs Neural TTS via our backend API ──────────
     try {
@@ -209,15 +227,16 @@ export function VoiceTestModal() {
         audio.onended = () => {
           URL.revokeObjectURL(audioUrl);
           setIsAiSpeaking(false);
-          onDone();
+          isAiSpeakingRef.current = false;
+          setTimeout(onDone, 600);
         };
         audio.onerror = () => {
           URL.revokeObjectURL(audioUrl);
           setIsAiSpeaking(false);
+          isAiSpeakingRef.current = false;
           onDone();
         };
 
-        setIsAiSpeaking(true);
         await audio.play();
         return;
       }

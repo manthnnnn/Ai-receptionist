@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useClinic } from '../layout/clinic-context';
-import { Phone, PhoneOff, Mic, MicOff, X, Volume2, ShieldCheck, Radio, Sparkles } from 'lucide-react';
+import { Phone, PhoneOff, Mic, MicOff, X, Volume2, ShieldCheck, Radio, Sparkles, VolumeX } from 'lucide-react';
 import { detectEmotion, DetectedEmotion } from '@/lib/ai/emotions';
 
 interface Message {
@@ -38,6 +38,29 @@ function cleanSpeechText(text: string, lang: 'mr' | 'hi' | 'en'): string {
   return cleaned.trim();
 }
 
+// Acoustic Echo Detection: Detects if microphone caught laptop speaker sound
+function isAcousticEcho(userInput: string, lastAiSpeech: string): boolean {
+  if (!userInput || !lastAiSpeech) return false;
+  const cleanUser = userInput.toLowerCase().replace(/[^a-z0-9\u0900-\u097F]/g, '');
+  const cleanAi = lastAiSpeech.toLowerCase().replace(/[^a-z0-9\u0900-\u097F]/g, '');
+
+  if (cleanUser.length < 3) return false;
+
+  // Substring match
+  if (cleanAi.includes(cleanUser) || cleanUser.includes(cleanAi)) return true;
+
+  // Word overlap match
+  const userWords = userInput.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  const aiWords = new Set(lastAiSpeech.toLowerCase().split(/\s+/).filter((w) => w.length > 2));
+
+  if (userWords.length > 0) {
+    const matchCount = userWords.filter((w) => aiWords.has(w)).length;
+    if (matchCount / userWords.length >= 0.5) return true;
+  }
+
+  return false;
+}
+
 export function PhoneSimulatorModal() {
   const { isPhoneSimulatorOpen, setIsPhoneSimulatorOpen, activeClinicId, activeClinic, refreshData } = useClinic();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -45,17 +68,20 @@ export function PhoneSimulatorModal() {
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [currentEmotion, setCurrentEmotion] = useState<DetectedEmotion | null>(null);
   const [selectedLang, setSelectedLang] = useState<'en' | 'hi' | 'mr'>('mr'); // Default Marathi
-  const [isHandsFree, setIsHandsFree] = useState(true); // Default true for phone call realism
+  const [isHandsFree, setIsHandsFree] = useState(false); // Default false: Push-to-Talk to prevent speaker feedback loop
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   const recognitionRef = useRef<any>(null);
   const isHandsFreeRef = useRef(isHandsFree);
   const selectedLangRef = useRef(selectedLang);
+  const isAiSpeakingRef = useRef(isAiSpeaking);
+  const lastAiSpeechRef = useRef<string>('');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   isHandsFreeRef.current = isHandsFree;
   selectedLangRef.current = selectedLang;
+  isAiSpeakingRef.current = isAiSpeaking;
 
   // Load voices
   useEffect(() => {
@@ -81,6 +107,15 @@ export function PhoneSimulatorModal() {
     }
 
     const cleanText = cleanSpeechText(text, lang);
+    lastAiSpeechRef.current = cleanText;
+
+    // Immediately stop microphone to prevent acoustic loop
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (_) {}
+    }
+    setIsRecording(false);
 
     // Stop any previously playing audio or speech
     if (audioRef.current) {
@@ -92,8 +127,9 @@ export function PhoneSimulatorModal() {
     }
 
     setIsAiSpeaking(true);
+    isAiSpeakingRef.current = true;
 
-    // TIER 1: Neural Edge TTS Audio from /api/tts (Crystal clear, natural human voice)
+    // TIER 1: Neural Edge TTS Audio from /api/tts
     try {
       const res = await fetch('/api/tts', {
         method: 'POST',
@@ -111,13 +147,16 @@ export function PhoneSimulatorModal() {
           audio.onended = () => {
             URL.revokeObjectURL(url);
             setIsAiSpeaking(false);
+            isAiSpeakingRef.current = false;
             audioRef.current = null;
-            onDone();
+            // Delay 600ms to allow acoustic speaker reverberation to dissipate
+            setTimeout(onDone, 600);
           };
 
           audio.onerror = () => {
             URL.revokeObjectURL(url);
             setIsAiSpeaking(false);
+            isAiSpeakingRef.current = false;
             audioRef.current = null;
             onDone();
           };
@@ -171,12 +210,14 @@ export function PhoneSimulatorModal() {
 
       utter.onend = () => {
         setIsAiSpeaking(false);
+        isAiSpeakingRef.current = false;
         utteranceRef.current = null;
-        onDone();
+        setTimeout(onDone, 600);
       };
 
       utter.onerror = () => {
         setIsAiSpeaking(false);
+        isAiSpeakingRef.current = false;
         utteranceRef.current = null;
         onDone();
       };
@@ -184,6 +225,7 @@ export function PhoneSimulatorModal() {
       window.speechSynthesis.speak(utter);
     } else {
       setIsAiSpeaking(false);
+      isAiSpeakingRef.current = false;
       onDone();
     }
   }, [availableVoices]);
@@ -206,9 +248,7 @@ export function PhoneSimulatorModal() {
       // Speak initial greeting
       speakWithNeuralVoice(greeting, selectedLang, emotion, () => {
         if (isHandsFreeRef.current) {
-          setTimeout(() => {
-            startListening();
-          }, 350);
+          startListening();
         }
       });
     } else {
@@ -221,22 +261,30 @@ export function PhoneSimulatorModal() {
         window.speechSynthesis.cancel();
       }
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.abort();
+        } catch (_) {}
       }
       setIsRecording(false);
       setIsAiSpeaking(false);
+      isAiSpeakingRef.current = false;
     }
   }, [isPhoneSimulatorOpen, selectedLang, activeClinic, speakWithNeuralVoice]);
 
-  // Start Speech Recognition
+  // Start Speech Recognition with Acoustic Echo Cancellation
   const startListening = useCallback(() => {
     if (typeof window === 'undefined') return;
+    // Don't listen if AI is speaking!
+    if (isAiSpeakingRef.current) return;
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
     try {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.abort();
+        } catch (_) {}
       }
 
       const recognition = new SpeechRecognition();
@@ -248,8 +296,15 @@ export function PhoneSimulatorModal() {
 
       recognition.onstart = () => setIsRecording(true);
       recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
         setIsRecording(false);
+        const transcript = event.results[0][0].transcript;
+
+        // ⚠️ ECHO SUPPRESSION: Discard if AI was speaking or transcript matched AI's own words!
+        if (isAiSpeakingRef.current || isAcousticEcho(transcript, lastAiSpeechRef.current)) {
+          console.warn('[Echo Cancelled] Discarded speaker self-echo transcript:', transcript);
+          return;
+        }
+
         handleSpeak(transcript);
       };
       recognition.onerror = () => setIsRecording(false);
@@ -264,6 +319,12 @@ export function PhoneSimulatorModal() {
 
   const handleSpeak = (text: string) => {
     if (!text.trim()) return;
+
+    // Reject echo
+    if (isAcousticEcho(text, lastAiSpeechRef.current)) {
+      console.warn('[Echo Cancelled] Ignored prompt matching recent AI speech:', text);
+      return;
+    }
 
     const userMessage = { speaker: 'user' as const, text, lang: selectedLangRef.current };
     setMessages((prev) => [...prev, userMessage]);
@@ -300,9 +361,7 @@ export function PhoneSimulatorModal() {
           // Play AI voice response with neural engine
           speakWithNeuralVoice(data.reply, turnLang, emotion, () => {
             if (isHandsFreeRef.current) {
-              setTimeout(() => {
-                startListening();
-              }, 350);
+              startListening();
             }
           });
 
@@ -315,6 +374,7 @@ export function PhoneSimulatorModal() {
       .catch((err) => {
         console.error('Chat error:', err);
         setIsAiSpeaking(false);
+        isAiSpeakingRef.current = false;
       });
   };
 
@@ -327,12 +387,15 @@ export function PhoneSimulatorModal() {
       window.speechSynthesis.cancel();
     }
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.abort();
+      } catch (_) {}
     }
     setIsPhoneSimulatorOpen(false);
     setMessages([]);
     setIsRecording(false);
     setIsAiSpeaking(false);
+    isAiSpeakingRef.current = false;
   };
 
   if (!isPhoneSimulatorOpen) return null;
@@ -405,23 +468,23 @@ export function PhoneSimulatorModal() {
           {isAiSpeaking && (
             <div className="flex items-center gap-2 text-xs text-orange-400 font-medium py-1">
               <span className="w-2 h-2 rounded-full bg-gcore-orange animate-ping" />
-              <span>Maya is speaking...</span>
+              <span>Maya is speaking (Mic Muted)...</span>
             </div>
           )}
 
           {isRecording && (
             <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium py-1">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Listening to you...</span>
+              <span>Listening to your voice...</span>
             </div>
           )}
         </div>
 
         {/* Call Controls Footer */}
         <div className="p-4 bg-black/60 border-t border-white/10 shrink-0 space-y-3">
-          {/* Hands-Free Toggle */}
+          {/* Push-to-Talk vs Continuous Mode Toggle */}
           <div className="flex items-center justify-between px-2 text-[11px]">
-            <span className="text-neutral-400">Continuous Phone Mode</span>
+            <span className="text-neutral-400">Mode</span>
             <button
               onClick={() => setIsHandsFree(!isHandsFree)}
               className={`px-2 py-0.5 rounded-full font-bold text-[10px] border transition-apple ${
@@ -430,7 +493,7 @@ export function PhoneSimulatorModal() {
                   : 'bg-neutral-800 border-white/10 text-neutral-400'
               }`}
             >
-              {isHandsFree ? 'AUTO SPEECH ON' : 'MANUAL MIC'}
+              {isHandsFree ? 'AUTO SPEECH (HANDS-FREE)' : 'PUSH-TO-TALK (MANUAL)'}
             </button>
           </div>
 
@@ -459,13 +522,13 @@ export function PhoneSimulatorModal() {
           {/* Action Buttons: Mic & Hang Up */}
           <div className="flex items-center justify-center gap-6 pt-1">
             <button
-              onClick={isRecording ? () => recognitionRef.current?.stop() : startListening}
+              onClick={isRecording ? () => { try { recognitionRef.current?.abort(); } catch(_) {}; setIsRecording(false); } : startListening}
               className={`w-13 h-13 rounded-full flex items-center justify-center transition-apple shadow-lg ${
                 isRecording
                   ? 'bg-emerald-500 text-white animate-pulse ring-4 ring-emerald-500/30'
                   : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
               }`}
-              title="Push to Speak"
+              title={isRecording ? "Click to Stop Listening" : "Click to Speak"}
             >
               {isRecording ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6 text-neutral-400" />}
             </button>
