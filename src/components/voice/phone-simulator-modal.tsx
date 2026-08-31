@@ -129,13 +129,18 @@ export function PhoneSimulatorModal() {
     setIsAiSpeaking(true);
     isAiSpeakingRef.current = true;
 
-    // TIER 1: Neural Edge TTS Audio from /api/tts
+    // TIER 1: Neural Edge TTS Audio from /api/tts with 2s Abort timeout
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: cleanText, lang }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (res.ok && res.status === 200) {
         const blob = await res.blob();
@@ -149,7 +154,6 @@ export function PhoneSimulatorModal() {
             setIsAiSpeaking(false);
             isAiSpeakingRef.current = false;
             audioRef.current = null;
-            // Delay 600ms to allow acoustic speaker reverberation to dissipate
             setTimeout(onDone, 600);
           };
 
@@ -166,10 +170,10 @@ export function PhoneSimulatorModal() {
         }
       }
     } catch (err) {
-      console.warn('Neural TTS API fallback to browser synthesis:', err);
+      // Fast fallback to browser speech synthesis
     }
 
-    // TIER 2: Browser SpeechSynthesis with garbage collection fix and wake-up
+    // TIER 2: Browser SpeechSynthesis with accurate Devanagari voice routing
     if ('speechSynthesis' in window) {
       window.speechSynthesis.resume();
       window.speechSynthesis.cancel();
@@ -181,27 +185,31 @@ export function PhoneSimulatorModal() {
       utter.pitch = emotion?.pitch || 1.0;
 
       const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
-      let selectedVoice = null;
+      let selectedVoice: SpeechSynthesisVoice | null = null;
 
       if (lang === 'mr') {
         utter.lang = 'mr-IN';
+        // Priority: Native Marathi -> Natural Hindi (Devanagari) -> General Hindi
+        // DO NOT assign English voices to Marathi text!
         selectedVoice =
-          voices.find((v) => v.lang === 'mr-IN' || v.name.toLowerCase().includes('marathi')) ||
-          voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
-          voices.find((v) => v.name.includes('hi') || v.name.includes('Heera')) ||
-          voices.find((v) => v.name.includes('en-IN'));
+          voices.find((v) => v.lang === 'mr-IN' || v.lang === 'mr' || v.name.toLowerCase().includes('marathi')) ||
+          voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur') || v.name.includes('Aarohi'))) ||
+          voices.find((v) => v.lang.includes('hi') || v.name.toLowerCase().includes('hindi') || v.name.includes('Heera')) ||
+          null;
       } else if (lang === 'hi') {
         utter.lang = 'hi-IN';
+        // DO NOT assign English voices to Hindi text!
         selectedVoice =
           voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
-          voices.find((v) => v.name.includes('hi') || v.name.toLowerCase().includes('hindi') || v.name.includes('Heera')) ||
-          voices.find((v) => v.name.includes('en-IN'));
+          voices.find((v) => v.lang.includes('hi') || v.lang === 'hi-IN' || v.name.toLowerCase().includes('hindi') || v.name.includes('Heera')) ||
+          null;
       } else {
         utter.lang = 'en-IN';
         selectedVoice =
           voices.find((v) => v.name.includes('Natural') && (v.lang.includes('en-IN') || v.name.includes('Neerja'))) ||
           voices.find((v) => v.name.includes('en-IN') || v.name.includes('India')) ||
-          voices.find((v) => v.lang.startsWith('en'));
+          voices.find((v) => v.lang.startsWith('en')) ||
+          null;
       }
 
       if (selectedVoice) {
