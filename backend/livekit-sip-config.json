@@ -1,0 +1,35 @@
+{
+  "$schema": "https://livekit.io/schemas/sip-config.json",
+  "sip_trunks": [
+    {
+      "id": "twilio-inbound-trunk",
+      "name": "Twilio / Exotel Inbound SIP Trunk",
+      "inbound_addresses": [
+        "*.pstn.twilio.com",
+        "*.sip.exotel.com"
+      ],
+      "auth_username": "livekit-telephony",
+      "auth_password": "ENV_SIP_TRUNK_PASSWORD",
+      "numbers": [
+        "+918045678901",
+        "+918045677788",
+        "+15550192834"
+      ]
+    }
+  ],
+  "dispatch_rules": [
+    {
+      "name": "Clinic AI Receptionist Dispatch Rule",
+      "rule": {
+        "dispatch_rule_individual": {
+          "room_prefix": "call-",
+          "pin": ""
+        }
+      },
+      "attributes": {
+        "sip.agent": "voice-worker",
+        "clinic_id": "00000000-0000-0000-0000-000000000001"
+      }
+    }
+  ]
+}
