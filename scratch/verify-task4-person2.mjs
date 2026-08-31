@@ -2,8 +2,14 @@
 // Tests: Appointments & Doctors UI endpoints, Reschedule & Cancel API, Doctor Fee Manager, SMS/WhatsApp dispatch, and Multi-Tenant Isolation
 
 async function runVerification() {
-  const baseUrl = 'http://localhost:3000';
-  console.log('🧪 Starting Task 4 Person 2 Comprehensive Verification...\n');
+  let baseUrl = 'http://localhost:3001';
+  try {
+    const check = await fetch('http://localhost:3001/api/clinic');
+    if (!check.ok) baseUrl = 'http://localhost:3000';
+  } catch {
+    baseUrl = 'http://localhost:3000';
+  }
+  console.log(`🧪 Starting Task 4 Person 2 Comprehensive Verification on ${baseUrl}...\n`);
 
   const clinic1Id = '00000000-0000-0000-0000-000000000001'; // Apollo Dental
   const clinic2Id = '00000000-0000-0000-0000-000000000002'; // Radiance Dermatology
