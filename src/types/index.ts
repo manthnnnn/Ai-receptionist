@@ -102,6 +102,9 @@ export interface Patient {
   created_at: string;
 }
 
+export type AppointmentStatus = 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
+export type BookingSource = 'AI_VOICE' | 'MANUAL' | 'WEBRTC_DEMO';
+
 export type NotificationStatus = 'NOT_SENT' | 'QUEUED' | 'SENT' | 'DELIVERED' | 'FAILED';
 
 export interface NotificationLog {
