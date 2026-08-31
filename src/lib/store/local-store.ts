@@ -1,7 +1,7 @@
 import { 
   Clinic, ClinicSettings, Doctor, DoctorAvailability, DoctorBreak, 
   DoctorLeave, ClinicHoliday, Service, Patient, Appointment, 
-  CallLog, ClinicFAQ, ClinicStats, DialogueTurn
+  CallLog, ClinicFAQ, ClinicStats, DialogueTurn, Conversation, Message
 } from '@/types';
 
 class LocalStore {
@@ -17,6 +17,8 @@ class LocalStore {
   private appointments: Appointment[] = [];
   private callLogs: CallLog[] = [];
   private faqs: ClinicFAQ[] = [];
+  private conversations: Conversation[] = [];
+  private messages: Message[] = [];
 
   constructor() {
     this.seed();
@@ -343,7 +345,43 @@ class LocalStore {
         outcome: 'BOOKED',
         appointment_id: '44444444-4444-4444-4444-444444444441',
         created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-        transcript_preview: 'Caller booked root canal follow-up with Dr. Ashish Verma for tomorrow 11:00 AM.',
+        dialogue_turns: [
+          {
+            turn_index: 0,
+            speaker: 'ai',
+            text: 'Namaste! Thank you for calling Apollo Dental Clinic. How can I assist you with your appointment or visit today?',
+            timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+            latency_ms: 450,
+          },
+          {
+            turn_index: 1,
+            speaker: 'user',
+            text: 'Hi, I need a root canal follow-up appointment with Dr. Ashish Verma tomorrow.',
+            timestamp: new Date(Date.now() - 3600000 * 2 + 5000).toISOString(),
+          },
+          {
+            turn_index: 2,
+            speaker: 'ai',
+            text: 'Certainly! Dr. Ashish Verma is available tomorrow at 11:00 AM. Shall I confirm that slot for you?',
+            tool_called: 'check_availability',
+            latency_ms: 580,
+            timestamp: new Date(Date.now() - 3600000 * 2 + 7000).toISOString(),
+          },
+          {
+            turn_index: 3,
+            speaker: 'user',
+            text: 'Yes please, my name is Priya Sundaram.',
+            timestamp: new Date(Date.now() - 3600000 * 2 + 12000).toISOString(),
+          },
+          {
+            turn_index: 4,
+            speaker: 'ai',
+            text: 'Your appointment with Dr. Ashish Verma is confirmed for tomorrow at 11:00 AM. We have dispatched confirmation details to your phone. Thank you!',
+            tool_called: 'book_appointment',
+            latency_ms: 610,
+            timestamp: new Date(Date.now() - 3600000 * 2 + 15000).toISOString(),
+          },
+        ],
       },
       {
         id: 'call-2',
@@ -356,6 +394,29 @@ class LocalStore {
         outcome: 'FAQ_ANSWERED',
         created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
         transcript_preview: 'Answered inquiry regarding dental specialist fees (₹500 - ₹800).',
+        dialogue_turns: [
+          {
+            turn_index: 0,
+            speaker: 'ai',
+            text: 'Hello! Thank you for calling Apollo Dental Clinic. How can I assist you today?',
+            timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
+            latency_ms: 420,
+          },
+          {
+            turn_index: 1,
+            speaker: 'user',
+            text: 'What is the consultation fee for dental specialist doctors?',
+            timestamp: new Date(Date.now() - 3600000 * 5 + 4000).toISOString(),
+          },
+          {
+            turn_index: 2,
+            speaker: 'ai',
+            text: 'Our general consultation fee is ₹500, while specialized endodontic and orthodontic consultations with Dr. Verma or Dr. Kulkarni are ₹750 to ₹800.',
+            tool_called: 'get_clinic_information',
+            latency_ms: 540,
+            timestamp: new Date(Date.now() - 3600000 * 5 + 6000).toISOString(),
+          },
+        ],
       },
       {
         id: 'call-3',
@@ -368,6 +429,142 @@ class LocalStore {
         outcome: 'FAQ_ANSWERED',
         created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
         transcript_preview: 'Caller verified Saturday working hours (10 AM to 4 PM).',
+        dialogue_turns: [
+          {
+            turn_index: 0,
+            speaker: 'ai',
+            text: 'Hello! Welcome to Apollo Dental Clinic. How can I help you?',
+            timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
+            latency_ms: 410,
+          },
+          {
+            turn_index: 1,
+            speaker: 'user',
+            text: 'Are you open on Saturdays?',
+            timestamp: new Date(Date.now() - 3600000 * 24 + 3000).toISOString(),
+          },
+          {
+            turn_index: 2,
+            speaker: 'ai',
+            text: 'Yes! We are open on Saturdays from 10:00 AM to 4:00 PM.',
+            tool_called: 'get_clinic_information',
+            latency_ms: 490,
+            timestamp: new Date(Date.now() - 3600000 * 24 + 5000).toISOString(),
+          },
+        ],
+      },
+    ];
+
+    // 9. Schema Tables 13 & 14: Conversations & Messages
+    this.conversations = [
+      {
+        id: 'conv-1',
+        call_id: 'call-1',
+        created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+      },
+      {
+        id: 'conv-2',
+        call_id: 'call-2',
+        created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+      },
+      {
+        id: 'conv-3',
+        call_id: 'call-3',
+        created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+      },
+    ];
+
+    this.messages = [
+      // conv-1 messages
+      {
+        id: 'msg-1-1',
+        conversation_id: 'conv-1',
+        speaker: 'RECEPTIONIST',
+        content: 'Namaste! Thank you for calling Apollo Dental Clinic. How can I assist you with your appointment or visit today?',
+        latency_ms: 450,
+        timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+      },
+      {
+        id: 'msg-1-2',
+        conversation_id: 'conv-1',
+        speaker: 'PATIENT',
+        content: 'Hi, I need a root canal follow-up appointment with Dr. Ashish Verma tomorrow.',
+        timestamp: new Date(Date.now() - 3600000 * 2 + 5000).toISOString(),
+      },
+      {
+        id: 'msg-1-3',
+        conversation_id: 'conv-1',
+        speaker: 'RECEPTIONIST',
+        content: 'Certainly! Dr. Ashish Verma is available tomorrow at 11:00 AM. Shall I confirm that slot for you?',
+        tool_called: 'check_availability',
+        latency_ms: 580,
+        timestamp: new Date(Date.now() - 3600000 * 2 + 7000).toISOString(),
+      },
+      {
+        id: 'msg-1-4',
+        conversation_id: 'conv-1',
+        speaker: 'PATIENT',
+        content: 'Yes please, my name is Priya Sundaram.',
+        timestamp: new Date(Date.now() - 3600000 * 2 + 12000).toISOString(),
+      },
+      {
+        id: 'msg-1-5',
+        conversation_id: 'conv-1',
+        speaker: 'RECEPTIONIST',
+        content: 'Your appointment with Dr. Ashish Verma is confirmed for tomorrow at 11:00 AM. We have dispatched confirmation details to your phone. Thank you!',
+        tool_called: 'book_appointment',
+        latency_ms: 610,
+        timestamp: new Date(Date.now() - 3600000 * 2 + 15000).toISOString(),
+      },
+      // conv-2 messages
+      {
+        id: 'msg-2-1',
+        conversation_id: 'conv-2',
+        speaker: 'RECEPTIONIST',
+        content: 'Hello! Thank you for calling Apollo Dental Clinic. How can I assist you today?',
+        latency_ms: 420,
+        timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
+      },
+      {
+        id: 'msg-2-2',
+        conversation_id: 'conv-2',
+        speaker: 'PATIENT',
+        content: 'What is the consultation fee for dental specialist doctors?',
+        timestamp: new Date(Date.now() - 3600000 * 5 + 4000).toISOString(),
+      },
+      {
+        id: 'msg-2-3',
+        conversation_id: 'conv-2',
+        speaker: 'RECEPTIONIST',
+        content: 'Our general consultation fee is ₹500, while specialized endodontic and orthodontic consultations with Dr. Verma or Dr. Kulkarni are ₹750 to ₹800.',
+        tool_called: 'get_clinic_information',
+        latency_ms: 540,
+        timestamp: new Date(Date.now() - 3600000 * 5 + 6000).toISOString(),
+      },
+      // conv-3 messages
+      {
+        id: 'msg-3-1',
+        conversation_id: 'conv-3',
+        speaker: 'RECEPTIONIST',
+        content: 'Hello! Welcome to Apollo Dental Clinic. How can I help you?',
+        latency_ms: 410,
+        timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
+      },
+      {
+        id: 'msg-3-2',
+        conversation_id: 'conv-3',
+        speaker: 'PATIENT',
+        content: 'Are you open on Saturdays?',
+        timestamp: new Date(Date.now() - 3600000 * 24 + 3000).toISOString(),
+      },
+      {
+        id: 'msg-3-3',
+        conversation_id: 'conv-3',
+        speaker: 'RECEPTIONIST',
+        content: 'Yes! We are open on Saturdays from 10:00 AM to 4:00 PM.',
+        tool_called: 'get_clinic_information',
+        latency_ms: 490,
+        timestamp: new Date(Date.now() - 3600000 * 24 + 5000).toISOString(),
       },
     ];
   }
@@ -660,13 +857,26 @@ class LocalStore {
   }
 
   logCall(call: Omit<CallLog, 'id' | 'created_at' | 'started_at'> & { id?: string; started_at?: string; call_sid?: string }): CallLog {
+    const callId = call.id || (call as any).call_sid || `call-${Date.now()}`;
     const newLog: CallLog = {
       started_at: call.started_at || new Date().toISOString(),
       ...call,
-      id: call.id || (call as any).call_sid || `call-${Date.now()}`,
+      id: callId,
       created_at: new Date().toISOString(),
     };
     this.callLogs.unshift(newLog);
+
+    // Schema Table 13: Automatically create Conversation record
+    let conv = this.conversations.find((c) => c.call_id === callId);
+    if (!conv) {
+      conv = {
+        id: `conv-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        call_id: callId,
+        created_at: newLog.started_at,
+      };
+      this.conversations.unshift(conv);
+    }
+
     return newLog;
   }
 
@@ -691,7 +901,231 @@ class LocalStore {
     if (turn.language) {
       log.detected_language = turn.language;
     }
+
+    // Schema Tables 13 & 14: Mirror to conversation and messages
+    let conv = this.conversations.find((c) => c.call_id === log.id);
+    if (!conv) {
+      conv = {
+        id: `conv-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        call_id: log.id,
+        created_at: log.started_at,
+      };
+      this.conversations.unshift(conv);
+    }
+
+    const speakerMapped: 'PATIENT' | 'RECEPTIONIST' | 'SYSTEM' = 
+      turn.speaker === 'ai' ? 'RECEPTIONIST' : 'PATIENT';
+
+    this.messages.push({
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      conversation_id: conv.id,
+      speaker: speakerMapped,
+      content: turn.text,
+      latency_ms: turn.latency_ms,
+      tool_called: turn.tool_called,
+      timestamp: turn.timestamp || new Date().toISOString(),
+    });
+
     return log;
+  }
+
+  // ─── Schema Tables 13 & 14: Conversations & Messages ─────────────
+  private ensureConversationsInitialized() {
+    if (!this.conversations || this.conversations.length === 0) {
+      this.conversations = [
+        {
+          id: 'conv-1',
+          call_id: 'call-1',
+          created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+        },
+        {
+          id: 'conv-2',
+          call_id: 'call-2',
+          created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+        },
+        {
+          id: 'conv-3',
+          call_id: 'call-3',
+          created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+        },
+      ];
+    }
+    if (!this.messages || this.messages.length === 0) {
+      this.messages = [
+        {
+          id: 'msg-1-1',
+          conversation_id: 'conv-1',
+          speaker: 'RECEPTIONIST',
+          content: 'Namaste! Thank you for calling Apollo Dental Clinic. How can I assist you with your appointment or visit today?',
+          latency_ms: 450,
+          timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+        },
+        {
+          id: 'msg-1-2',
+          conversation_id: 'conv-1',
+          speaker: 'PATIENT',
+          content: 'Hi, I need a root canal follow-up appointment with Dr. Ashish Verma tomorrow.',
+          timestamp: new Date(Date.now() - 3600000 * 2 + 5000).toISOString(),
+        },
+        {
+          id: 'msg-1-3',
+          conversation_id: 'conv-1',
+          speaker: 'RECEPTIONIST',
+          content: 'Certainly! Dr. Ashish Verma is available tomorrow at 11:00 AM. Shall I confirm that slot for you?',
+          tool_called: 'check_availability',
+          latency_ms: 580,
+          timestamp: new Date(Date.now() - 3600000 * 2 + 7000).toISOString(),
+        },
+        {
+          id: 'msg-1-4',
+          conversation_id: 'conv-1',
+          speaker: 'PATIENT',
+          content: 'Yes please, my name is Priya Sundaram.',
+          timestamp: new Date(Date.now() - 3600000 * 2 + 12000).toISOString(),
+        },
+        {
+          id: 'msg-1-5',
+          conversation_id: 'conv-1',
+          speaker: 'RECEPTIONIST',
+          content: 'Your appointment with Dr. Ashish Verma is confirmed for tomorrow at 11:00 AM. We have dispatched confirmation details to your phone. Thank you!',
+          tool_called: 'book_appointment',
+          latency_ms: 610,
+          timestamp: new Date(Date.now() - 3600000 * 2 + 15000).toISOString(),
+        },
+        {
+          id: 'msg-2-1',
+          conversation_id: 'conv-2',
+          speaker: 'RECEPTIONIST',
+          content: 'Hello! Thank you for calling Apollo Dental Clinic. How can I assist you today?',
+          latency_ms: 420,
+          timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
+        },
+        {
+          id: 'msg-2-2',
+          conversation_id: 'conv-2',
+          speaker: 'PATIENT',
+          content: 'What is the consultation fee for dental specialist doctors?',
+          timestamp: new Date(Date.now() - 3600000 * 5 + 4000).toISOString(),
+        },
+        {
+          id: 'msg-2-3',
+          conversation_id: 'conv-2',
+          speaker: 'RECEPTIONIST',
+          content: 'Our general consultation fee is ₹500, while specialized endodontic and orthodontic consultations with Dr. Verma or Dr. Kulkarni are ₹750 to ₹800.',
+          tool_called: 'get_clinic_information',
+          latency_ms: 540,
+          timestamp: new Date(Date.now() - 3600000 * 5 + 6000).toISOString(),
+        },
+        {
+          id: 'msg-3-1',
+          conversation_id: 'conv-3',
+          speaker: 'RECEPTIONIST',
+          content: 'Hello! Welcome to Apollo Dental Clinic. How can I help you?',
+          latency_ms: 410,
+          timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
+        },
+        {
+          id: 'msg-3-2',
+          conversation_id: 'conv-3',
+          speaker: 'PATIENT',
+          content: 'Are you open on Saturdays?',
+          timestamp: new Date(Date.now() - 3600000 * 24 + 3000).toISOString(),
+        },
+        {
+          id: 'msg-3-3',
+          conversation_id: 'conv-3',
+          speaker: 'RECEPTIONIST',
+          content: 'Yes! We are open on Saturdays from 10:00 AM to 4:00 PM.',
+          tool_called: 'get_clinic_information',
+          latency_ms: 490,
+          timestamp: new Date(Date.now() - 3600000 * 24 + 5000).toISOString(),
+        },
+      ];
+    }
+  }
+
+  getConversations(clinicId?: string): Conversation[] {
+    this.ensureConversationsInitialized();
+    if (clinicId) {
+      const clinicCallIds = new Set(this.callLogs.filter((c) => c.clinic_id === clinicId).map((c) => c.id));
+      return this.conversations.filter((conv) => clinicCallIds.has(conv.call_id));
+    }
+    return this.conversations;
+  }
+
+  getConversationById(id: string): Conversation | undefined {
+    this.ensureConversationsInitialized();
+    const conv = this.conversations.find((c) => c.id === id);
+    if (!conv) return undefined;
+    return {
+      ...conv,
+      messages: this.getMessages(conv.id),
+    };
+  }
+
+  getConversationByCallId(callId: string): Conversation | undefined {
+    this.ensureConversationsInitialized();
+    const conv = this.conversations.find((c) => c.call_id === callId);
+    if (!conv) return undefined;
+    return {
+      ...conv,
+      messages: this.getMessages(conv.id),
+    };
+  }
+
+  getMessages(conversationId?: string): Message[] {
+    this.ensureConversationsInitialized();
+    if (conversationId) {
+      return this.messages.filter((m) => m.conversation_id === conversationId);
+    }
+    return this.messages;
+  }
+
+  createConversation(callId: string): Conversation {
+    this.ensureConversationsInitialized();
+    const existing = this.conversations.find((c) => c.call_id === callId);
+    if (existing) return existing;
+    const newConv: Conversation = {
+      id: `conv-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      call_id: callId,
+      created_at: new Date().toISOString(),
+    };
+    this.conversations.unshift(newConv);
+    return newConv;
+  }
+
+  addMessage(
+    conversationId: string,
+    speaker: 'PATIENT' | 'RECEPTIONIST' | 'SYSTEM',
+    content: string,
+    extra?: { latency_ms?: number; tool_called?: string; tool_result?: unknown; timestamp?: string }
+  ): Message {
+    this.ensureConversationsInitialized();
+    const newMsg: Message = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      conversation_id: conversationId,
+      speaker,
+      content,
+      timestamp: extra?.timestamp || new Date().toISOString(),
+      latency_ms: extra?.latency_ms,
+      tool_called: extra?.tool_called,
+      tool_result: extra?.tool_result,
+    };
+    this.messages.push(newMsg);
+    return newMsg;
+  }
+
+  getConversationWithMessages(callIdOrConvId: string): { conversation: Conversation; messages: Message[] } | null {
+    this.ensureConversationsInitialized();
+    const conv = this.conversations.find(
+      (c) => c.id === callIdOrConvId || c.call_id === callIdOrConvId
+    );
+    if (!conv) return null;
+    const msgs = this.getMessages(conv.id);
+    return {
+      conversation: { ...conv, messages: msgs },
+      messages: msgs,
+    };
   }
 
 

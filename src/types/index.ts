@@ -173,13 +173,16 @@ export interface Message {
   speaker: 'PATIENT' | 'RECEPTIONIST' | 'SYSTEM';
   content: string;
   timestamp: string;
+  latency_ms?: number;
+  tool_called?: string;
+  tool_result?: unknown;
 }
 
 export interface Conversation {
   id: string;
   call_id: string;
   created_at: string;
-  messages: Message[];
+  messages?: Message[];
 }
 
 export interface ClinicFAQ {
