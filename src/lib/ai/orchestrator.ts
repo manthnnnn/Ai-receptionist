@@ -431,60 +431,86 @@ export async function processReceptionistTurn(
   }
 
   // ─────────────────────────────────────────────────────────────
-  // 4. INTELLIGENT MULTILINGUAL FALLBACK ENGINE (WITH EMOTIONS)
+  // 4. INTELLIGENT MULTILINGUAL CONVERSATIONAL BRAIN
   // ─────────────────────────────────────────────────────────────
 
-  // Humor / Casual / AI Identity / Greeting / Laughter
+  // A. Casual Greetings / "How are you" / "Hello" (Never repeat initial welcome)
   if (
-    text.includes('haha') ||
-    text.includes('hehe') ||
-    text.includes('joke') ||
-    text.includes('funny') ||
-    text.includes('robot') ||
-    text.includes('ai') ||
-    text.includes('who are you') ||
+    text === 'hi' ||
+    text === 'hello' ||
+    text === 'hey' ||
+    text.includes('हॅलो') ||
+    text.includes('हाय') ||
+    text.includes('hello') ||
     text.includes('kashi ahes') ||
     text.includes('कशी आहेस') ||
     text.includes('कसे आहात') ||
-    text.includes('हाहा') ||
-    text.includes('हे हे') ||
-    text.includes('मजाक') ||
-    text.includes('हंस')
+    text.includes('कैसे हो') ||
+    text.includes('how are you')
   ) {
-    let reply = `Haha! I'm Maya, your cheerful AI receptionist at ${clinicName}! I love helping patients and I know all about our wonderful doctors and slots. How can I make your day easier?`;
+    let reply = `I'm doing wonderful, thank you for asking! I'm right here listening — how can I assist you with doctor appointments, treatments, or clinic info today?`;
     if (lang === 'mr') {
-      reply = `हाहा! मी एकदम मजेत आहे! मी माया, ${clinicName} ची हुशार AI असिस्टंट. बोला, आज मी तुमची काय मदत करू?`;
+      reply = `मी अगदी मजेत आहे! मी ऐकत आहे — बोला, आपल्याला डॉक्टर अपॉइंटमेंट, तपासणी शुल्क किंवा उपचारांविषयी काय माहिती हवी आहे?`;
     } else if (lang === 'hi') {
-      reply = `हाहा! मैं बहुत अच्छी हूँ! मैं माया, ${clinicName} की AI रिसेप्शनिस्ट हूँ। बताइए, आज मैं आपके लिए क्या कर सकती हूँ?`;
+      reply = `मैं बहुत अच्छी हूँ, धन्यवाद! मैं सुन रही हूँ — बताइए, आज डॉक्टर अपॉइंटमेंट या इलाज के बारे में मैं आपकी क्या सहायता करूँ?`;
     }
     return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
   }
 
-  // A. Root Canal / Dr. Verma / Endodontics Inquiries (Empathy for Pain)
+  // B. Identity / "Who are you" / Laughter / Jokes
   if (
+    text.includes('who are you') ||
+    text.includes('your name') ||
+    text.includes('तू कोण') ||
+    text.includes('तुमचं नाव') ||
+    text.includes('आप कौन') ||
+    text.includes('तुम्हारा नाम') ||
+    text.includes('haha') ||
+    text.includes('hehe') ||
+    text.includes('हाहा') ||
+    text.includes('हे हे') ||
+    text.includes('मजाक')
+  ) {
+    let reply = `Haha! I'm Maya, the cheerful AI front-desk receptionist here at ${clinicName}! I manage appointments, doctor schedules, and all clinic inquiries. How can I help you today?`;
+    if (lang === 'mr') {
+      reply = `हाहा! मी माया, ${clinicName} ची हुशार AI रिसेप्शनिस्ट आहे. मी अपॉइंटमेंट बुकिंग, डॉक्टरांच्या वेळा आणि क्लिनिकच्या सर्व प्रश्नांमध्ये मदत करते. बोला, मी काय करू?`;
+    } else if (lang === 'hi') {
+      reply = `हाहा! मैं माया, ${clinicName} की AI रिसेप्शनिस्ट हूँ। मैं अपॉइंटमेंट बुकिंग और डॉक्टरों की जानकारी में आपकी मदद करती हूँ। बताइए, क्या सहायता करूँ?`;
+    }
+    return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
+  }
+
+  // C. Toothache / Pain / Root Canal / Cavities / Fillings (Empathy & Triage)
+  if (
+    text.includes('दात') ||
+    text.includes('दांत') ||
+    text.includes('दुख') ||
+    text.includes('दर्द') ||
+    text.includes('कळ') ||
+    text.includes('वेदना') ||
+    text.includes('त्रास') ||
     text.includes('root canal') ||
     text.includes('rct') ||
+    text.includes('रूट कॅनल') ||
+    text.includes('cavity') ||
+    text.includes('किड') ||
     text.includes('toothache') ||
     text.includes('pain') ||
     text.includes('nerve') ||
-    text.includes('verma') ||
-    text.includes('रूट कॅनल') ||
-    text.includes('दात दुखणे') ||
-    text.includes('कळ') ||
-    text.includes('वेदना') ||
-    text.includes('दांत दर्द')
+    text.includes('verma')
   ) {
     const verma = doctors.find((d) => d.name.includes('Verma')) || doctors[0];
-    let reply = `Oh no, toothaches are truly the worst! But don't worry, Dr. Ashish Verma is wonderful and specializes in completely painless single-sitting root canals for ₹${verma.consultation_fee}. Shall I reserve a slot for you tomorrow?`;
+    const vermaFee = verma?.consultation_fee || 750;
+    let reply = `Oh no, toothaches can be so painful and uncomfortable! Don't worry at all — Dr. Ashish Verma specializes in gentle, painless single-sitting root canals and pain relief for ₹${vermaFee}. Would you like me to book a slot for you?`;
     if (lang === 'mr') {
-      reply = `अरे रे, दातदुखी खूप त्रासदायक असते! पण अजिबात काळजी करू नका, डॉ. आशिष वर्मा अगदी वेदनारहित रूट कॅनल करतात. फी फक्त ₹${verma.consultation_fee} आहे. मी उद्याची वेळ निश्चित करू का?`;
+      reply = `अरे रे, दातदुखी खूप त्रासदायक असते! पण काळजी करू नका, डॉ. आशिष वर्मा अगदी वेदनारहित सिंगल-सिटिंग रूट कॅनल करतात. फी फक्त ₹${vermaFee} आहे. मी आज किंवा उद्याची वेळ बुक करू का?`;
     } else if (lang === 'hi') {
-      reply = `ओह नहीं, दांत का दर्द बहुत परेशान करता है! पर बिल्कुल चिंता मत कीजिए, डॉ. आशीष वर्मा बिना किसी दर्द के रूट कैनाल करते हैं। फीस ₹${verma.consultation_fee} है। क्या मैं कल का समय बुक करूँ?`;
+      reply = `ओह नहीं, दांत का दर्द बहुत तकलीफदेह होता है! बिल्कुल चिंता न करें, डॉ. आशीष वर्मा दर्द-रहित रूट कैनाल विशेषज्ञ हैं। फीस मात्र ₹${vermaFee} है। क्या मैं आपकी अपॉइंटमेंट बुक करूँ?`;
     }
     return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
   }
 
-  // B. Braces / Aligners / Dr. Kulkarni / Orthodontics Inquiries (Cheerful/Delight)
+  // D. Braces / Clear Aligners / Dr. Kulkarni / Smile Design
   if (
     text.includes('aligner') ||
     text.includes('braces') ||
@@ -493,19 +519,22 @@ export async function processReceptionistTurn(
     text.includes('ortho') ||
     text.includes('smile') ||
     text.includes('ब्रेस') ||
-    text.includes('अलाइनर')
+    text.includes('अलाइनर') ||
+    text.includes('वाकडे') ||
+    text.includes('सुंदर दात')
   ) {
     const kulkarni = doctors.find((d) => d.name.includes('Kulkarni')) || doctors[1] || doctors[0];
-    let reply = `Oh wonderful! Dr. Neha Kulkarni is our certified smile designer for invisible clear aligners and ceramic braces. Her consultation is ₹${kulkarni.consultation_fee}. Shall I set up a consultation for you?`;
+    const kulkarniFee = kulkarni?.consultation_fee || 800;
+    let reply = `Oh wonderful! Dr. Neha Kulkarni is our certified orthodontist specializing in invisible clear aligners and modern braces. Consultation fee is ₹${kulkarniFee}. Shall we schedule a smile design visit?`;
     if (lang === 'mr') {
-      reply = `अरे वाह! डॉ. नेहा कुलकर्णी पारदर्शक अलाइनर्स (Clear Aligners) आणि सुंदर स्माईल डिझायनिंगच्या तज्ज्ञ आहेत. त्यांचे शुल्क ₹${kulkarni.consultation_fee} आहे. आपण त्यांच्यासोबत भेट ठरवू का?`;
+      reply = `अरे वाह! डॉ. नेहा कुलकर्णी पारदर्शक अलाइनर्स (Clear Aligners) आणि स्माईल डिझायनिंगच्या तज्ज्ञ आहेत. त्यांचे शुल्क ₹${kulkarniFee} आहे. आपण त्यांच्यासोबत भेट ठरवू का?`;
     } else if (lang === 'hi') {
-      reply = `अरे वाह! डॉ. नेहा कुलकर्णी इनविजिबल क्लियर अलाइनर्स और ब्रेसेस की विशेषज्ञ हैं। उनकी फीस ₹${kulkarni.consultation_fee} है। क्या मैं आपकी कंसल्टेशन बुक करूँ?`;
+      reply = `अरे वाह! डॉ. नेहा कुलकर्णी इनविजिबल क्लियर अलाइनर्स और ब्रेसेस की विशेषज्ञ हैं। उनकी फीस ₹${kulkarniFee} है। क्या मैं आपकी कंसल्टेशन बुक करूँ?`;
     }
     return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
   }
 
-  // C. Dental Implants / Cleaning / Dr. Rohan Mehta Inquiries
+  // E. Dental Implants / Cleaning / Scaling / Whitening / Dr. Mehta
   if (
     text.includes('implant') ||
     text.includes('cleaning') ||
@@ -515,19 +544,22 @@ export async function processReceptionistTurn(
     text.includes('mehta') ||
     text.includes('इम्प्लांट') ||
     text.includes('सफाई') ||
-    text.includes('स्वच्छता')
+    text.includes('स्वच्छता') ||
+    text.includes('काढणे') ||
+    text.includes('पिवळे')
   ) {
     const mehta = doctors.find((d) => d.name.includes('Mehta')) || doctors[2] || doctors[0];
-    let reply = `Dr. Rohan Mehta is fantastic for dental implants, ultrasonic teeth cleaning, and general check-ups. His consultation is ₹${mehta.consultation_fee}. Would you like to see what times he has available?`;
+    const mehtaFee = mehta?.consultation_fee || 500;
+    let reply = `Dr. Rohan Mehta is fantastic for dental implants, ultrasonic teeth cleaning, and general check-ups. His consultation is ₹${mehtaFee}. Would you like to see what times he has available?`;
     if (lang === 'mr') {
-      reply = `हो! डॉ. रोहन मेहता हे दात स्वच्छता (Cleaning), इम्प्लांट आणि तपासणीसाठी उत्तम डॉक्टर आहेत. त्यांचे शुल्क ₹${mehta.consultation_fee} आहे. मी त्यांच्या वेळा तपासू का?`;
+      reply = `हो! डॉ. रोहन मेहता हे दात स्वच्छता (Cleaning), इम्प्लांट आणि तपासणीसाठी उत्तम डॉक्टर आहेत. त्यांचे शुल्क ₹${mehtaFee} आहे. मी त्यांच्या वेळा तपासू का?`;
     } else if (lang === 'hi') {
-      reply = `जी! डॉ. रोहन मेहता दांतों की सफाई, इम्प्लांट और जनरल चेकअप के बहुत अच्छे डॉक्टर हैं। उनकी फीस ₹${mehta.consultation_fee} है। क्या आप उनका समय देखना चाहेंगे?`;
+      reply = `जी! डॉ. रोहन मेहता दांतों की सफाई, इम्प्लांट और जनरल चेकअप के बहुत अच्छे डॉक्टर हैं। उनकी फीस ₹${mehtaFee} है। क्या आप उनका समय देखना चाहेंगे?`;
     }
     return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
   }
 
-  // D. General Doctor Fees & Charges Inquiries
+  // F. Doctor Consultation Fees & Pricing
   if (
     text.includes('fee') ||
     text.includes('cost') ||
@@ -538,13 +570,36 @@ export async function processReceptionistTurn(
     text.includes('पैसे') ||
     text.includes('खर्च') ||
     text.includes('कितना') ||
-    text.includes('किती')
+    text.includes('किती') ||
+    text.includes('रुपये') ||
+    text.includes('दर')
   ) {
     let reply = `Sure! Our general dental check-up with Dr. Rohan Mehta is ₹500, while specialized root canal and orthodontic consultations are ₹750 to ₹800. Digital X-rays are ₹250. How can I help you further?`;
     if (lang === 'mr') {
       reply = `नक्कीच! सामान्य तपासणी शुल्क डॉ. रोहन मेहता यांच्यासाठी ₹५०० आहे, तर रूट कॅनल व ब्रेसेस स्पेशालिस्टसाठी ₹७५० ते ₹८०० आहे. डिजिटल एक्स-रे ₹२५० आहे. मी आपली काय मदत करू?`;
     } else if (lang === 'hi') {
       reply = `जी बिल्कुल! सामान्य जांच फीस डॉ. रोहन मेहता के लिए ₹500 है, और रूट कैनाल व ब्रेसेस विशेषज्ञों की फीस ₹750 से ₹800 है। डिजिटल एक्स-रे ₹250 है। मैं आगे आपकी क्या मदद करूँ?`;
+    }
+    return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
+  }
+
+  // G. Acknowledgments & Thanks ("Thank you", "Okay", "Sure")
+  if (
+    text.includes('thank') ||
+    text.includes('धन्यवाद') ||
+    text.includes('आभारी') ||
+    text.includes('शुक्रिया') ||
+    text.includes('okay') ||
+    text.includes('ok') ||
+    text.includes('ठीक') ||
+    text.includes('चालेल') ||
+    text.includes('हो')
+  ) {
+    let reply = `You're most welcome! I'm always here if you need anything else for your appointment. Take good care of your smile!`;
+    if (lang === 'mr') {
+      reply = `अरे काही हरकत नाही! आपल्याला कधीही अपॉइंटमेंट किंवा मदतीची गरज भासल्यास नक्की सांगा. आपल्या आरोग्याची काळजी घ्या!`;
+    } else if (lang === 'hi') {
+      reply = `अरे कोई बात नहीं! आपको कभी भी अपॉइंटमेंट या सहायता की आवश्यकता हो, तो बेझिझक कहें। अपना ख्याल रखिए!`;
     }
     return { reply, language: lang, latency_ms: Date.now() - startTime, call_outcome: 'FAQ_ANSWERED' };
   }
