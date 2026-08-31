@@ -70,21 +70,39 @@ const config: Config = {
       },
       animation: {
         'fade-in': 'fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
         'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+        'slide-in-left': 'slideInLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+        'slide-in-right': 'slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
         'scale-in': 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'wave': 'wave 1.2s ease-in-out infinite',
         'float': 'float 6s ease-in-out infinite',
         'glow-pulse': 'glowPulse 3s ease-in-out infinite alternate',
+        'skeleton': 'skeleton 1.8s ease-in-out infinite',
+        'toast-in': 'toastIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        'count-up': 'countUp 2s ease-out forwards',
       },
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
+        fadeInUp: {
+          '0%': { opacity: '0', transform: 'translateY(24px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
         slideUp: {
           '0%': { opacity: '0', transform: 'translateY(16px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideInLeft: {
+          '0%': { opacity: '0', transform: 'translateX(-100%)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        slideInRight: {
+          '0%': { opacity: '0', transform: 'translateX(100%)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
         },
         scaleIn: {
           '0%': { opacity: '0', transform: 'scale(0.97)' },
@@ -101,6 +119,14 @@ const config: Config = {
         glowPulse: {
           '0%': { opacity: '0.4', filter: 'blur(30px)' },
           '100%': { opacity: '0.85', filter: 'blur(50px)' },
+        },
+        skeleton: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        toastIn: {
+          '0%': { opacity: '0', transform: 'translateY(16px) scale(0.95)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
       },
     },

@@ -33,6 +33,16 @@ class LocalStore {
         address: '45, 2nd Cross, Koramangala 4th Block, Bangalore - 560034',
         phone_number: '+91-80-4567-8901',
         timezone: 'Asia/Kolkata',
+        agent_enabled: true,
+        agent_name: 'Maya',
+        primary_language: 'mr',
+        voice_id: 'mr-IN-AarohiNeural',
+        plan_tier: 'growth',
+        monthly_minutes_used: 142,
+        monthly_minute_limit: 1000,
+        primary_handoff_number: '+91-98765-00001',
+        backup_handoff_number: '+91-98765-00009',
+        ai_greeting: 'नमस्कार! Apollo Dental Clinic मध्ये आपले स्वागत आहे. मी माया, आपली काय मदत करू?',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -42,6 +52,15 @@ class LocalStore {
         address: '12, Indiranagar 100ft Road, Bangalore - 560038',
         phone_number: '+91-80-4567-8902',
         timezone: 'Asia/Kolkata',
+        agent_enabled: true,
+        agent_name: 'Priya',
+        primary_language: 'hi',
+        voice_id: 'hi-IN-SwaraNeural',
+        plan_tier: 'enterprise',
+        monthly_minutes_used: 320,
+        monthly_minute_limit: 2500,
+        primary_handoff_number: '+91-98765-00002',
+        ai_greeting: 'नमस्ते! Radiance Dermatology Center में आपका स्वागत है। मैं प्रिया, आपकी क्या सहायता करूँ?',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -586,10 +605,156 @@ class LocalStore {
     }) || this.clinics[0];
   }
 
+  createClinic(data: {
+    name: string;
+    address?: string;
+    phone_number?: string;
+    agent_name?: string;
+    primary_language?: 'mr' | 'hi' | 'en';
+    voice_id?: string;
+    plan_tier?: 'starter' | 'growth' | 'enterprise';
+    primary_handoff_number?: string;
+    ai_greeting?: string;
+  }): Clinic {
+    const newId = `clinic-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const lang = data.primary_language || 'mr';
+    const agentName = data.agent_name || (lang === 'mr' ? 'माया' : lang === 'hi' ? 'प्रिया' : 'Maya');
+
+    let defaultGreeting = `नमस्कार! ${data.name} मध्ये आपले स्वागत आहे. मी ${agentName}, आपली काय मदत करू?`;
+    if (lang === 'hi') {
+      defaultGreeting = `नमस्ते! ${data.name} में आपका स्वागत है। मैं ${agentName}, आपकी क्या सहायता कर सकती हूँ?`;
+    } else if (lang === 'en') {
+      defaultGreeting = `Hello! Welcome to ${data.name}. My name is ${agentName}. How can I help you today?`;
+    }
+
+    const newClinic: Clinic = {
+      id: newId,
+      name: data.name,
+      address: data.address || 'MG Road, Pune, Maharashtra - 411001',
+      phone_number: data.phone_number || `+91-80-4567-${Math.floor(1000 + Math.random() * 9000)}`,
+      timezone: 'Asia/Kolkata',
+      agent_enabled: true,
+      agent_name: agentName,
+      primary_language: lang,
+      voice_id: data.voice_id || (lang === 'mr' ? 'mr-IN-AarohiNeural' : lang === 'hi' ? 'hi-IN-SwaraNeural' : 'en-IN-NeerjaNeural'),
+      plan_tier: data.plan_tier || 'growth',
+      monthly_minutes_used: 0,
+      monthly_minute_limit: data.plan_tier === 'enterprise' ? 2500 : data.plan_tier === 'starter' ? 500 : 1000,
+      primary_handoff_number: data.primary_handoff_number || '+91-98765-00000',
+      ai_greeting: data.ai_greeting || defaultGreeting,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    this.clinics.push(newClinic);
+
+    // Auto-seed default settings
+    this.settings.push({
+      id: `set-${Date.now()}`,
+      clinic_id: newId,
+      operating_hours: {
+        mon: '09:30-19:30',
+        tue: '09:30-19:30',
+        wed: '09:30-19:30',
+        thu: '09:30-19:30',
+        fri: '09:30-19:30',
+        sat: '10:00-16:00',
+        sun: 'closed',
+      },
+      ai_greeting: newClinic.ai_greeting || defaultGreeting,
+      ai_enabled: true,
+      agent_name: agentName,
+      primary_language: lang,
+      primary_handoff_number: newClinic.primary_handoff_number || '+91-98765-00000',
+    });
+
+    // Auto-seed sample doctor
+    this.doctors.push({
+      id: `doc-${Date.now()}`,
+      clinic_id: newId,
+      name: 'Dr. Sameer Patil',
+      specialty: 'Chief Medical Specialist',
+      description: 'Senior consulting specialist with 10+ years clinical experience.',
+      consultation_duration_minutes: 30,
+      consultation_fee: 600,
+      is_active: true,
+      created_at: new Date().toISOString(),
+    });
+
+    // Auto-seed sample FAQs
+    this.faqs.push(
+      {
+        id: `faq-${Date.now()}-1`,
+        clinic_id: newId,
+        category: 'FEES',
+        question: 'What is the consultation fee?',
+        answer: `Our standard doctor consultation fee is ₹600.`,
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: `faq-${Date.now()}-2`,
+        clinic_id: newId,
+        category: 'PARKING',
+        question: 'Is parking available at the clinic?',
+        answer: 'Yes, free dedicated parking is available for 2-wheelers and 4-wheelers.',
+        created_at: new Date().toISOString(),
+      }
+    );
+
+    return newClinic;
+  }
+
+  toggleAgent(clinicId: string, enabled: boolean): Clinic | undefined {
+    const clinic = this.clinics.find((c) => c.id === clinicId);
+    if (!clinic) return undefined;
+    clinic.agent_enabled = enabled;
+    clinic.updated_at = new Date().toISOString();
+
+    const settings = this.settings.find((s) => s.clinic_id === clinicId);
+    if (settings) {
+      settings.ai_enabled = enabled;
+    }
+    return clinic;
+  }
+
+  deleteClinic(clinicId: string): boolean {
+    const index = this.clinics.findIndex((c) => c.id === clinicId);
+    if (index === -1) return false;
+    this.clinics.splice(index, 1);
+    this.settings = this.settings.filter((s) => s.clinic_id !== clinicId);
+    this.doctors = this.doctors.filter((d) => d.clinic_id !== clinicId);
+    this.faqs = this.faqs.filter((f) => f.clinic_id !== clinicId);
+    this.appointments = this.appointments.filter((a) => a.clinic_id !== clinicId);
+    this.callLogs = this.callLogs.filter((c) => c.clinic_id !== clinicId);
+    return true;
+  }
+
+  getClinicsOverview() {
+    return this.clinics.map((clinic) => {
+      const doctors = this.doctors.filter((d) => d.clinic_id === clinic.id);
+      const appointments = this.appointments.filter((a) => a.clinic_id === clinic.id);
+      const calls = this.callLogs.filter((c) => c.clinic_id === clinic.id);
+      return {
+        ...clinic,
+        doctors_count: doctors.length,
+        appointments_count: appointments.length,
+        calls_count: calls.length,
+      };
+    });
+  }
+
   updateClinic(id: string, updates: Partial<Clinic>): Clinic | undefined {
     const clinic = this.clinics.find((c) => c.id === id);
     if (!clinic) return undefined;
     Object.assign(clinic, updates, { updated_at: new Date().toISOString() });
+    
+    // Sync to settings if ai_greeting or handoff changed
+    const settings = this.settings.find((s) => s.clinic_id === id);
+    if (settings) {
+      if (updates.ai_greeting !== undefined) settings.ai_greeting = updates.ai_greeting;
+      if (updates.agent_enabled !== undefined) settings.ai_enabled = updates.agent_enabled;
+      if (updates.primary_handoff_number !== undefined) settings.primary_handoff_number = updates.primary_handoff_number;
+    }
     return clinic;
   }
 

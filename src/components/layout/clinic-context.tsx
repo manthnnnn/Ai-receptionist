@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Clinic, ClinicStats } from '@/types';
 
 interface ClinicContextType {
@@ -10,12 +10,27 @@ interface ClinicContextType {
   activeClinic: Clinic | undefined;
   stats: ClinicStats | null;
   refreshData: () => void;
+  toggleAgentActive: (enabled: boolean) => Promise<void>;
+  createNewClinic: (data: {
+    name: string;
+    address?: string;
+    phone_number?: string;
+    agent_name?: string;
+    primary_language?: 'mr' | 'hi' | 'en';
+    voice_id?: string;
+    plan_tier?: 'starter' | 'growth' | 'enterprise';
+    primary_handoff_number?: string;
+    ai_greeting?: string;
+  }) => Promise<Clinic | null>;
+  deleteClinic: (id: string) => Promise<boolean>;
   isVoiceTesterOpen: boolean;
   setIsVoiceTesterOpen: (open: boolean) => void;
   isPhoneSimulatorOpen: boolean;
   setIsPhoneSimulatorOpen: (open: boolean) => void;
   isManualBookingOpen: boolean;
   setIsManualBookingOpen: (open: boolean) => void;
+  isAddClinicModalOpen: boolean;
+  setIsAddClinicModalOpen: (open: boolean) => void;
   theme: 'dark' | 'light';
   setTheme: (t: 'dark' | 'light') => void;
   toggleTheme: () => void;
@@ -32,6 +47,7 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
   const [isVoiceTesterOpen, setIsVoiceTesterOpen] = useState(false);
   const [isPhoneSimulatorOpen, setIsPhoneSimulatorOpen] = useState(false);
   const [isManualBookingOpen, setIsManualBookingOpen] = useState(false);
+  const [isAddClinicModalOpen, setIsAddClinicModalOpen] = useState(false);
   
   // Theme state: dark (default) | light
   const [theme, setThemeState] = useState<'dark' | 'light'>('dark');
@@ -69,6 +85,19 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
 
   const refreshData = () => setRefreshKey((k) => k + 1);
 
+  // Fetch all clinics
+  const fetchAllClinics = useCallback(() => {
+    fetch('/api/clinic?all=true')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.clinics) {
+          setClinics(data.clinics);
+        }
+      })
+      .catch((err) => console.error('Error fetching all clinics:', err));
+  }, []);
+
+  // Fetch active clinic & stats
   useEffect(() => {
     fetch(`/api/clinic?clinic_id=${activeClinicId}`)
       .then((res) => res.json())
@@ -77,49 +106,105 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
           setStats(data.stats);
           if (data.clinic) {
             setClinics((prev) => {
-              if (!prev.some((c) => c.id === data.clinic.id)) {
-                return [...prev, data.clinic];
+              const idx = prev.findIndex((c) => c.id === data.clinic.id);
+              if (idx >= 0) {
+                const next = [...prev];
+                next[idx] = { ...next[idx], ...data.clinic };
+                return next;
               }
-              return prev;
+              return [...prev, data.clinic];
             });
           }
         }
       })
       .catch((err) => console.error('Error fetching clinic context:', err));
-  }, [activeClinicId, refreshKey]);
+    
+    fetchAllClinics();
+  }, [activeClinicId, refreshKey, fetchAllClinics]);
 
-  // Initial populate of known clinics
-  useEffect(() => {
-    setClinics([
-      {
-        id: '00000000-0000-0000-0000-000000000001',
-        name: 'Apollo Dental Clinic',
-        address: '45, 2nd Cross, Koramangala 4th Block, Bangalore - 560034',
-        phone_number: '+91-80-4567-8901',
-        timezone: 'Asia/Kolkata',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: '00000000-0000-0000-0000-000000000002',
-        name: 'Fortis Health Point',
-        address: '14, Bannerghatta Main Rd, Bengaluru - 560076',
-        phone_number: '+91-80-5678-9012',
-        timezone: 'Asia/Kolkata',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: '00000000-0000-0000-0000-000000000003',
-        name: 'Max Care Multispeciality',
-        address: '88, Linking Road, Bandra West, Mumbai - 400050',
-        phone_number: '+91-22-6789-0123',
-        timezone: 'Asia/Kolkata',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-    ]);
-  }, []);
+  // Master Agent ON/OFF Switch
+  const toggleAgentActive = async (enabled: boolean) => {
+    try {
+      // Optimistic update
+      setClinics((prev) =>
+        prev.map((c) => (c.id === activeClinicId ? { ...c, agent_enabled: enabled } : c))
+      );
+
+      const res = await fetch('/api/clinic', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clinic_id: activeClinicId,
+          agent_enabled: enabled,
+          ai_enabled: enabled,
+        }),
+      });
+
+      if (res.ok) {
+        refreshData();
+      }
+    } catch (err) {
+      console.error('Error toggling agent:', err);
+    }
+  };
+
+  // Create New Clinic Client
+  const createNewClinic = async (clinicData: {
+    name: string;
+    address?: string;
+    phone_number?: string;
+    agent_name?: string;
+    primary_language?: 'mr' | 'hi' | 'en';
+    voice_id?: string;
+    plan_tier?: 'starter' | 'growth' | 'enterprise';
+    primary_handoff_number?: string;
+    ai_greeting?: string;
+  }): Promise<Clinic | null> => {
+    try {
+      const res = await fetch('/api/clinic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(clinicData),
+      });
+
+      const data = await res.json();
+      if (data.success && data.clinic) {
+        setClinics((prev) => [...prev, data.clinic]);
+        setActiveClinicId(data.clinic.id);
+        refreshData();
+        return data.clinic;
+      }
+      return null;
+    } catch (err) {
+      console.error('Error creating clinic:', err);
+      return null;
+    }
+  };
+
+  // Delete Clinic
+  const deleteClinic = async (id: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/clinic?clinic_id=${id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setClinics((prev) => prev.filter((c) => c.id !== id));
+        if (activeClinicId === id) {
+          const remaining = clinics.filter((c) => c.id !== id);
+          if (remaining.length > 0) {
+            setActiveClinicId(remaining[0].id);
+          }
+        }
+        refreshData();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Error deleting clinic:', err);
+      return false;
+    }
+  };
 
   const activeClinic = clinics.find((c) => c.id === activeClinicId) || clinics[0];
 
@@ -132,12 +217,17 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
         activeClinic,
         stats,
         refreshData,
+        toggleAgentActive,
+        createNewClinic,
+        deleteClinic,
         isVoiceTesterOpen,
         setIsVoiceTesterOpen,
         isPhoneSimulatorOpen,
         setIsPhoneSimulatorOpen,
         isManualBookingOpen,
         setIsManualBookingOpen,
+        isAddClinicModalOpen,
+        setIsAddClinicModalOpen,
         theme,
         setTheme,
         toggleTheme,

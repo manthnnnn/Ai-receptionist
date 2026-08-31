@@ -25,6 +25,12 @@ export default function VoiceEnginePage() {
     if (typeof window !== 'undefined') {
       setOrigin(window.location.origin);
     }
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add('visible'); }),
+      { threshold: 0.1 }
+    );
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, []);
 
   const copyToClipboard = (path: string) => {
@@ -129,16 +135,27 @@ export default function VoiceEnginePage() {
 
       {/* Latency Pipeline Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {pipelineStages.map((stage) => (
+        {pipelineStages.map((stage, i) => (
           <div
             key={stage.label}
-            className="gcore-card rounded-apple-xl p-5 space-y-3 border border-white/10"
+            className="reveal gcore-card rounded-apple-xl p-5 space-y-3 border border-white/10 hover:border-gcore-orange/30"
+            style={{ animationDelay: `${i * 80}ms` }}
           >
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{stage.label}</span>
               <span className="text-xs font-mono font-bold text-orange-300 bg-orange-950/60 border border-orange-800/40 px-2 py-0.5 rounded">
                 {stage.latency}
               </span>
+            </div>
+            {/* Mini waveform */}
+            <div className="flex items-end gap-[2px] h-5">
+              {[8, 14, 10, 18, 12, 16, 10, 14, 8].map((h, j) => (
+                <div
+                  key={j}
+                  className="waveform-bar"
+                  style={{ height: `${h}px`, animationDelay: `${j * 0.08 + i * 0.15}s` }}
+                />
+              ))}
             </div>
             <p className="text-[15px] font-bold text-white tracking-tight">{stage.engine}</p>
             <p className="text-xs text-slate-400 leading-relaxed">{stage.desc}</p>

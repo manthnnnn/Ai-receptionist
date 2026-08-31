@@ -12,11 +12,13 @@ import {
   Cpu,
   Activity,
   Settings,
-  Lock
+  Lock,
+  Building2
 } from 'lucide-react';
 
 const navItems = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Client Clinics', href: '/dashboard/clinics', icon: Building2 },
   { name: 'Appointments', href: '/dashboard/appointments', icon: CalendarCheck },
   { name: 'Doctors', href: '/dashboard/doctors', icon: Users },
   { name: 'Call Logs', href: '/dashboard/calls', icon: PhoneCall },
@@ -25,12 +27,17 @@ const navItems = [
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onNavClick?: () => void;
+  className?: string;
+}
+
+export function Sidebar({ onNavClick, className = '' }: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <aside
-      className="w-[240px] flex flex-col justify-between py-5 min-h-[calc(100vh-61px)] border-r transition-colors duration-300"
+      className={`w-[240px] flex flex-col justify-between py-5 min-h-[calc(100vh-61px)] border-r transition-colors duration-300 ${className}`}
       style={{ background: 'var(--sidebar-bg)', borderColor: 'var(--border)' }}
     >
       {/* Navigation */}
@@ -43,19 +50,23 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              onClick={onNavClick}
               className={`flex items-center gap-3 px-3.5 py-2.5 rounded-apple text-[13px] font-medium transition-apple ${
                 isActive
                   ? 'bg-gcore-orange/12 text-gcore-orange border border-gcore-orange/25'
-                  : 'hover:bg-black/[0.04]'
+                  : 'hover:bg-black/[0.04] [html.light_&]:hover:bg-black/[0.06]'
               }`}
               style={!isActive ? { color: 'var(--text-secondary)' } : undefined}
             >
               <Icon
-                className={`w-[17px] h-[17px] ${isActive ? 'text-gcore-orange' : ''}`}
+                className={`w-[17px] h-[17px] flex-shrink-0 ${isActive ? 'text-gcore-orange' : ''}`}
                 style={!isActive ? { color: 'var(--text-muted)' } : undefined}
                 strokeWidth={1.8}
               />
               <span>{item.name}</span>
+              {isActive && (
+                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-gcore-orange animate-pulse flex-shrink-0" />
+              )}
             </Link>
           );
         })}
@@ -78,7 +89,7 @@ export function Sidebar() {
             {[
               { label: 'VAD', value: 'Silero Neural', highlight: false },
               { label: 'STT', value: 'Deepgram Nova-2', highlight: false },
-              { label: 'LLM', value: 'Groq Qwen 3.8', highlight: true },
+              { label: 'LLM', value: 'Groq LLaMA 3.3', highlight: true },
               { label: 'TTS', value: 'MS Edge Neural', highlight: false },
             ].map(row => (
               <li key={row.label} className="flex justify-between">

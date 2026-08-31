@@ -6,6 +6,16 @@ export interface Clinic {
   address: string;
   phone_number: string;
   timezone: string;
+  agent_enabled: boolean;
+  agent_name: string;
+  primary_language: 'mr' | 'hi' | 'en';
+  voice_id: string;
+  plan_tier: 'starter' | 'growth' | 'enterprise';
+  monthly_minutes_used: number;
+  monthly_minute_limit: number;
+  primary_handoff_number?: string;
+  backup_handoff_number?: string;
+  ai_greeting?: string;
   created_at: string;
   updated_at: string;
 }
@@ -26,6 +36,8 @@ export interface ClinicSettings {
   operating_hours: OperatingHours;
   ai_greeting: string;
   ai_enabled: boolean;
+  agent_name?: string;
+  primary_language?: 'mr' | 'hi' | 'en';
   primary_handoff_number: string;
   backup_handoff_number?: string;
 }

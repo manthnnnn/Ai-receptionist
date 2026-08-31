@@ -208,7 +208,24 @@ export function parseNaturalDateTime(
   // ── 5. Detect Contradictions & Apply Period Offset ─────────────
   let isContradiction = false;
   let contradictionReason = '';
-  if (targetHour !== null && periodInfo) {
+
+  // Case A: explicit AM/PM conflicts with the period word
+  if (ampmMatch && periodInfo) {
+    const isExplicitAM = ampmMatch[3].toLowerCase() === 'am';
+    const isExplicitPM = ampmMatch[3].toLowerCase() === 'pm';
+    if (isExplicitAM && periodInfo.isPM) {
+      // e.g. "night 10 AM", "रात्री 10 AM", "afternoon 10 AM"
+      isContradiction = true;
+      contradictionReason = 'explicit_am_with_pm_period';
+    } else if (isExplicitPM && !periodInfo.isPM) {
+      // e.g. "morning 8 PM", "सकाळी 8 PM"
+      isContradiction = true;
+      contradictionReason = 'explicit_pm_with_am_period';
+    }
+  }
+
+  // Case B: digit contradicts period (e.g. "afternoon 10" where 10 < 12 → morning)
+  if (!isContradiction && targetHour !== null && periodInfo && !ampmMatch) {
     if (periodInfo.isPM && targetHour >= 8 && targetHour <= 11) {
       isContradiction = true;
       contradictionReason = `contradiction_morning_in_afternoon`;
@@ -217,13 +234,15 @@ export function parseNaturalDateTime(
       contradictionReason = `contradiction_afternoon_in_morning`;
     }
 
-    // Apply offset
-    if (periodInfo.isPM && targetHour >= 1 && targetHour <= 7) {
-      targetHour += 12;
-    } else if (!periodInfo.isPM && targetHour === 12) {
-      targetHour = 0;
+    // Apply offset only if not contradictory
+    if (!isContradiction) {
+      if (periodInfo.isPM && targetHour >= 1 && targetHour <= 7) {
+        targetHour += 12;
+      } else if (!periodInfo.isPM && targetHour === 12) {
+        targetHour = 0;
+      }
     }
-  } else if (targetHour !== null && !ampmMatch) {
+  } else if (targetHour !== null && !ampmMatch && !periodInfo) {
     // No period info and no AM/PM — guess based on clinic hours (9:30-19:30)
     if (targetHour >= 1 && targetHour <= 7) {
       targetHour += 12; // 1-7 → 13:00-19:00 (afternoon/evening)

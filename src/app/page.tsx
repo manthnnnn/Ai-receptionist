@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Sparkles, 
@@ -29,6 +29,17 @@ import { ThemeToggle } from '@/components/layout/theme-toggle';
 function HomeContent() {
   const { setIsVoiceTesterOpen, setIsPhoneSimulatorOpen } = useClinic();
   const [activeTab, setActiveTab] = useState<'mr' | 'hi' | 'en'>('mr');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Scroll-triggered section reveal
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add('visible'); }),
+      { threshold: 0.1 }
+    );
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
   const capabilities = [
     {
@@ -177,21 +188,53 @@ function HomeContent() {
 
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <Link
-              href="/dashboard"
-              className="gcore-btn-dark px-4 py-2 text-xs"
-            >
+            {/* Desktop buttons */}
+            <Link href="/dashboard" className="gcore-btn-dark px-4 py-2 text-xs hidden sm:block">
               Sign in
             </Link>
-            <Link
-              href="/dashboard"
-              className="gcore-btn-orange px-5 py-2 text-xs shadow-gcore-btn"
-            >
+            <Link href="/dashboard" className="gcore-btn-orange px-5 py-2 text-xs shadow-gcore-btn hidden sm:block">
               Launch Console
             </Link>
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="sm:hidden w-9 h-9 flex items-center justify-center rounded-apple hover:bg-white/5 transition-apple"
+              aria-label="Open menu"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+                <path d="M1 1h16M1 7h16M1 13h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            </button>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Nav Drawer */}
+      {mobileMenuOpen && (
+        <>
+          <div className="sidebar-overlay" onClick={() => setMobileMenuOpen(false)} />
+          <div className="sidebar-drawer flex flex-col p-6 gap-5" style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>Clinic<span className="text-gcore-orange">AI</span></span>
+              <button onClick={() => setMobileMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/5" style={{ color: 'var(--text-secondary)' }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              </button>
+            </div>
+            {['#features', '#architecture', '#demo', '#pricing'].map((href, i) => (
+              <a key={href} href={href} onClick={() => setMobileMenuOpen(false)}
+                className="text-sm font-medium py-2 border-b transition-apple hover:text-gcore-orange"
+                style={{ color: 'var(--text-secondary)', borderColor: 'var(--border)' }}
+              >
+                {['Features', 'Architecture', 'Live Demo', 'Pricing'][i]}
+              </a>
+            ))}
+            <Link href="/dashboard" className="gcore-btn-orange px-5 py-3 text-sm font-semibold text-center shadow-gcore-btn mt-2">
+              Launch Console
+            </Link>
+          </div>
+        </>
+      )}
 
       {/* Hero Section */}
       <section className="pt-20 pb-16 px-6 max-w-6xl mx-auto text-center relative z-10 space-y-7">
@@ -426,10 +469,10 @@ function HomeContent() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {features.map((f) => (
+          {features.map((f, i) => (
             <div
               key={f.title}
-              className="gcore-card p-6 rounded-apple-xl space-y-3 bg-[#0A0A0A] [html.light_&]:bg-white border border-white/10 [html.light_&]:border-slate-200"
+              className={`reveal reveal-delay-${Math.min(i + 1, 6)} gcore-card p-6 rounded-apple-xl space-y-3 bg-[#0A0A0A] [html.light_&]:bg-white border border-white/10 [html.light_&]:border-slate-200`}
             >
               <div className="flex items-center justify-between">
                 <div className="w-10 h-10 rounded-apple bg-gcore-orange/10 [html.light_&]:bg-orange-50 border border-gcore-orange/30 [html.light_&]:border-orange-200 flex items-center justify-center text-gcore-orange">
