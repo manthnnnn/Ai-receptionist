@@ -228,6 +228,7 @@ export function VoiceTestModal() {
     // ── TIER 2: Best Available Browser Neural Voice ─────────────────
     if (!('speechSynthesis' in window)) { onDone(); return; }
 
+    window.speechSynthesis.resume();
     window.speechSynthesis.cancel();
     await new Promise(r => setTimeout(r, 60));
 
@@ -285,6 +286,7 @@ export function VoiceTestModal() {
     utter.onend = () => { setIsAiSpeaking(false); onDone(); };
     utter.onerror = () => { setIsAiSpeaking(false); onDone(); };
 
+    window.speechSynthesis.resume();
     window.speechSynthesis.speak(utter);
 
     // Chrome TTS watchdog — Chrome sometimes hangs on long utterances

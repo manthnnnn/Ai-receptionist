@@ -51,6 +51,8 @@ export function PhoneSimulatorModal() {
   const recognitionRef = useRef<any>(null);
   const isHandsFreeRef = useRef(isHandsFree);
   const selectedLangRef = useRef(selectedLang);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   isHandsFreeRef.current = isHandsFree;
   selectedLangRef.current = selectedLang;
@@ -65,6 +67,126 @@ export function PhoneSimulatorModal() {
       window.speechSynthesis.onvoiceschanged = updateVoices;
     }
   }, []);
+
+  // Neural TTS Audio Player with Browser SpeechSynthesis Fallback
+  const speakWithNeuralVoice = useCallback(async (
+    text: string,
+    lang: 'mr' | 'hi' | 'en',
+    emotion: DetectedEmotion,
+    onDone: () => void
+  ) => {
+    if (typeof window === 'undefined') {
+      onDone();
+      return;
+    }
+
+    const cleanText = cleanSpeechText(text, lang);
+
+    // Stop any previously playing audio or speech
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+
+    setIsAiSpeaking(true);
+
+    // TIER 1: Neural Edge TTS Audio from /api/tts (Crystal clear, natural human voice)
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleanText, lang }),
+      });
+
+      if (res.ok && res.status === 200) {
+        const blob = await res.blob();
+        if (blob.size > 500) {
+          const url = URL.createObjectURL(blob);
+          const audio = new Audio(url);
+          audioRef.current = audio;
+
+          audio.onended = () => {
+            URL.revokeObjectURL(url);
+            setIsAiSpeaking(false);
+            audioRef.current = null;
+            onDone();
+          };
+
+          audio.onerror = () => {
+            URL.revokeObjectURL(url);
+            setIsAiSpeaking(false);
+            audioRef.current = null;
+            onDone();
+          };
+
+          await audio.play();
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Neural TTS API fallback to browser synthesis:', err);
+    }
+
+    // TIER 2: Browser SpeechSynthesis with garbage collection fix and wake-up
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.resume();
+      window.speechSynthesis.cancel();
+      await new Promise((r) => setTimeout(r, 60));
+
+      const utter = new SpeechSynthesisUtterance(cleanText);
+      utteranceRef.current = utter;
+      utter.rate = emotion?.rate || 1.0;
+      utter.pitch = emotion?.pitch || 1.0;
+
+      const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
+      let selectedVoice = null;
+
+      if (lang === 'mr') {
+        utter.lang = 'mr-IN';
+        selectedVoice =
+          voices.find((v) => v.lang === 'mr-IN' || v.name.toLowerCase().includes('marathi')) ||
+          voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
+          voices.find((v) => v.name.includes('hi') || v.name.includes('Heera')) ||
+          voices.find((v) => v.name.includes('en-IN'));
+      } else if (lang === 'hi') {
+        utter.lang = 'hi-IN';
+        selectedVoice =
+          voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
+          voices.find((v) => v.name.includes('hi') || v.name.toLowerCase().includes('hindi') || v.name.includes('Heera')) ||
+          voices.find((v) => v.name.includes('en-IN'));
+      } else {
+        utter.lang = 'en-IN';
+        selectedVoice =
+          voices.find((v) => v.name.includes('Natural') && (v.lang.includes('en-IN') || v.name.includes('Neerja'))) ||
+          voices.find((v) => v.name.includes('en-IN') || v.name.includes('India')) ||
+          voices.find((v) => v.lang.startsWith('en'));
+      }
+
+      if (selectedVoice) {
+        utter.voice = selectedVoice;
+      }
+
+      utter.onend = () => {
+        setIsAiSpeaking(false);
+        utteranceRef.current = null;
+        onDone();
+      };
+
+      utter.onerror = () => {
+        setIsAiSpeaking(false);
+        utteranceRef.current = null;
+        onDone();
+      };
+
+      window.speechSynthesis.speak(utter);
+    } else {
+      setIsAiSpeaking(false);
+      onDone();
+    }
+  }, [availableVoices]);
 
   // When modal opens or language changes, trigger initial greeting
   useEffect(() => {
@@ -81,66 +203,30 @@ export function PhoneSimulatorModal() {
       setCurrentEmotion(emotion);
       setMessages([{ speaker: 'ai', text: greeting, lang: selectedLang, emotion }]);
 
-      // Speak greeting and auto-open mic when finished
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        setIsAiSpeaking(true);
-
-        const spokenGreeting = cleanSpeechText(greeting, selectedLang);
-        const utter = new SpeechSynthesisUtterance(spokenGreeting);
-        utter.rate = emotion.rate;
-        utter.pitch = emotion.pitch;
-
-        const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
-        let selectedVoice = null;
-
-        if (selectedLang === 'mr') {
-          utter.lang = 'mr-IN';
-          selectedVoice =
-            voices.find((v) => v.name.toLowerCase().includes('marathi') || v.lang.includes('mr')) ||
-            voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
-            voices.find((v) => v.name.includes('hi') || v.name.includes('Heera')) ||
-            voices.find((v) => v.name.includes('en-IN'));
-        } else if (selectedLang === 'hi') {
-          utter.lang = 'hi-IN';
-          selectedVoice =
-            voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
-            voices.find((v) => v.name.includes('hi') || v.name.toLowerCase().includes('hindi') || v.name.includes('Heera')) ||
-            voices.find((v) => v.name.includes('en-IN'));
-        } else {
-          utter.lang = 'en-IN';
-          selectedVoice =
-            voices.find((v) => v.name.includes('Natural') && (v.lang.includes('en-IN') || v.name.includes('Neerja'))) ||
-            voices.find((v) => v.name.includes('en-IN') || v.name.includes('India')) ||
-            voices.find((v) => v.lang.startsWith('en'));
+      // Speak initial greeting
+      speakWithNeuralVoice(greeting, selectedLang, emotion, () => {
+        if (isHandsFreeRef.current) {
+          setTimeout(() => {
+            startListening();
+          }, 350);
         }
-
-        if (selectedVoice) {
-          utter.voice = selectedVoice;
-        }
-
-        utter.onend = () => {
-          setIsAiSpeaking(false);
-          if (isHandsFreeRef.current) {
-            setTimeout(() => {
-              startListening();
-            }, 400);
-          }
-        };
-
-        utter.onerror = () => {
-          setIsAiSpeaking(false);
-          if (isHandsFreeRef.current) {
-            setTimeout(() => {
-              startListening();
-            }, 400);
-          }
-        };
-
-        window.speechSynthesis.speak(utter);
+      });
+    } else {
+      // Clean up audio on modal close
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
       }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsRecording(false);
+      setIsAiSpeaking(false);
     }
-  }, [isPhoneSimulatorOpen, selectedLang, activeClinic]);
+  }, [isPhoneSimulatorOpen, selectedLang, activeClinic, speakWithNeuralVoice]);
 
   // Start Speech Recognition
   const startListening = useCallback(() => {
@@ -211,261 +297,187 @@ export function PhoneSimulatorModal() {
           setCurrentEmotion(emotion);
           setMessages((prev) => [...prev, { speaker: 'ai', text: data.reply, lang: turnLang, emotion }]);
 
-          if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            setIsAiSpeaking(true);
-
-            const spokenText = cleanSpeechText(data.reply, turnLang);
-            const utter = new SpeechSynthesisUtterance(spokenText);
-            utter.rate = emotion.rate;
-            utter.pitch = emotion.pitch;
-
-            const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
-            let selectedVoice = null;
-
-            if (turnLang === 'mr') {
-              utter.lang = 'mr-IN';
-              selectedVoice =
-                voices.find((v) => v.name.toLowerCase().includes('marathi') || v.lang.includes('mr')) ||
-                voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
-                voices.find((v) => v.name.includes('hi') || v.name.includes('Heera')) ||
-                voices.find((v) => v.name.includes('en-IN'));
-            } else if (turnLang === 'hi') {
-              utter.lang = 'hi-IN';
-              selectedVoice =
-                voices.find((v) => v.name.includes('Natural') && (v.lang.includes('hi') || v.name.includes('Swara') || v.name.includes('Madhur'))) ||
-                voices.find((v) => v.name.includes('hi') || v.name.toLowerCase().includes('hindi') || v.name.includes('Heera')) ||
-                voices.find((v) => v.name.includes('en-IN'));
-            } else {
-              utter.lang = 'en-IN';
-              selectedVoice =
-                voices.find((v) => v.name.includes('Natural') && (v.lang.includes('en-IN') || v.name.includes('Neerja'))) ||
-                voices.find((v) => v.name.includes('en-IN') || v.name.includes('India')) ||
-                voices.find((v) => v.lang.startsWith('en'));
+          // Play AI voice response with neural engine
+          speakWithNeuralVoice(data.reply, turnLang, emotion, () => {
+            if (isHandsFreeRef.current) {
+              setTimeout(() => {
+                startListening();
+              }, 350);
             }
+          });
 
-            if (selectedVoice) {
-              utter.voice = selectedVoice;
-            }
-
-            // Auto loop back to listening in hands-free mode!
-            utter.onend = () => {
-              setIsAiSpeaking(false);
-              if (isHandsFreeRef.current) {
-                setTimeout(() => {
-                  startListening();
-                }, 400);
-              }
-            };
-
-            utter.onerror = () => {
-              setIsAiSpeaking(false);
-              if (isHandsFreeRef.current) {
-                setTimeout(() => {
-                  startListening();
-                }, 400);
-              }
-            };
-
-            window.speechSynthesis.speak(utter);
-          }
-
-          if (data.tool_called === 'book_appointment' || data.tool_called === 'cancel_appointment') {
+          // Refresh appointments if booked
+          if (data.call_outcome === 'BOOKED' || data.tool_called === 'book_appointment') {
             refreshData();
           }
         }
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error('Chat error:', err);
+        setIsAiSpeaking(false);
+      });
   };
 
-  const handleMicClick = () => {
-    if (isRecording) {
-      if (recognitionRef.current) recognitionRef.current.stop();
-      setIsRecording(false);
-    } else {
-      startListening();
+  const handleEndCall = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
     }
-  };
-
-  const handleClose = () => {
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    if (recognitionRef.current) recognitionRef.current.stop();
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
     setIsPhoneSimulatorOpen(false);
+    setMessages([]);
+    setIsRecording(false);
+    setIsAiSpeaking(false);
   };
 
   if (!isPhoneSimulatorOpen) return null;
 
-  const quickPromptsByLang = {
-    en: [
-      'Haha, tell me a quick joke!',
-      'I have severe toothache and pain',
-      'Book slot tomorrow at 10 AM',
-      'Who are you?',
-      'What is the consultation fee?',
-    ],
-    hi: [
-      'हाहा, कोई चुटकुला सुनाओ!',
-      'दांत में बहुत तेज दर्द हो रहा है',
-      'कल सुबह 10 बजे का समय बुक करें',
-      'आप इंसान हैं या रोबोट?',
-      'डॉक्टर की फीस क्या है?',
-    ],
-    mr: [
-      'हाहा, काहीतरी गमतीशीर सांगा!',
-      'माझा दात खूप दुखतोय, खूप कळ येतेय',
-      'उद्या सकाळी १० वाजता वेळ बुक करा',
-      'तुम्ही कोण आहात?',
-      'तपासणी शुल्क किती आहे?',
-    ],
-  };
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
-      <div className="gcore-card border border-white/15 w-full max-w-md rounded-apple-xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-scale-in">
-        {/* Header */}
-        <div className="px-6 py-4 bg-black/90 border-b border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-apple bg-gcore-orange/15 border border-gcore-orange/30 flex items-center justify-center text-gcore-orange shadow-gcore-chip">
-              <Phone className="w-4 h-4" strokeWidth={2} />
-            </div>
-            <div>
-              <h3 className="font-bold text-white text-[15px] tracking-tight">Live Inbound Phone Simulator</h3>
-              <p className="text-xs text-slate-400">Emotional Humanoid Telephony · Sub-250ms</p>
-            </div>
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in text-white">
+      <div className="w-full max-w-sm rounded-[36px] bg-[#0A0D14] border border-white/15 shadow-2xl overflow-hidden flex flex-col h-[650px] relative animate-scale-in">
+        {/* Dynamic Island / Earpiece Top */}
+        <div className="pt-4 pb-2 px-6 flex flex-col items-center bg-black/40 border-b border-white/10 shrink-0">
+          <div className="w-20 h-4 bg-black rounded-full mb-3 flex items-center justify-center gap-1.5 border border-white/10">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[8px] font-mono text-emerald-300 font-bold">LIVE CALL</span>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Language Toggle */}
-            <div className="flex items-center bg-black border border-white/10 rounded-lg p-0.5 text-xs">
+          <h3 className="font-bold text-sm tracking-tight text-white">{activeClinic?.name || 'Apollo Dental Clinic'}</h3>
+          <p className="text-[11px] font-mono text-orange-300 mt-0.5">{activeClinic?.phone_number || '+91 80 4567 8901'}</p>
+
+          {/* Language Selector in Call */}
+          <div className="flex items-center gap-1.5 mt-2.5 bg-black/60 p-1 rounded-full border border-white/10">
+            {[
+              { id: 'mr', label: 'मराठी' },
+              { id: 'hi', label: 'हिंदी' },
+              { id: 'en', label: 'English' },
+            ].map((l) => (
               <button
-                onClick={() => setSelectedLang('mr')}
-                className={`px-2 py-0.5 rounded transition-apple text-[11px] font-medium ${
-                  selectedLang === 'mr' ? 'bg-gcore-orange text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                key={l.id}
+                onClick={() => setSelectedLang(l.id as any)}
+                className={`px-3 py-0.5 text-[10px] font-bold rounded-full transition-apple ${
+                  selectedLang === l.id
+                    ? 'bg-gcore-orange text-white shadow-xs'
+                    : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                मरा
-              </button>
-              <button
-                onClick={() => setSelectedLang('hi')}
-                className={`px-2 py-0.5 rounded transition-apple text-[11px] font-medium ${
-                  selectedLang === 'hi' ? 'bg-gcore-orange text-white shadow-xs' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                हिं
-              </button>
-              <button
-                onClick={() => setSelectedLang('en')}
-                className={`px-2 py-0.5 rounded transition-apple text-[11px] font-medium ${
-                  selectedLang === 'en' ? 'bg-gcore-orange text-white shadow-xs' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                EN
-              </button>
-            </div>
-
-            <button
-              onClick={handleClose}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-apple ml-1"
-            >
-              <X className="w-5 h-5" strokeWidth={1.5} />
-            </button>
-          </div>
-        </div>
-
-        {/* Call Active Display Card */}
-        <div className="p-6 bg-black/60 flex flex-col items-center text-center border-b border-white/10 relative">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gcore-orange to-amber-600 flex items-center justify-center text-white shadow-gcore-btn live-pulse mb-3">
-            <Phone className="w-7 h-7" strokeWidth={2} />
-          </div>
-
-          <h4 className="font-bold text-base text-white tracking-tight">{activeClinic?.name || 'Apollo Dental Clinic'}</h4>
-          <p className="text-xs text-slate-400 font-mono mt-0.5">
-            {activeClinic?.phone_number || '+91-80-4567-8901'}
-          </p>
-
-          <div className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-mono font-medium text-emerald-300 bg-emerald-950/60 border border-emerald-800/40 px-3 py-1 rounded-full">
-            <span className="status-dot bg-emerald-400 animate-pulse"></span>
-            {isRecording ? (
-              <span className="text-amber-300">● Caller Speaking...</span>
-            ) : isAiSpeaking ? (
-              <span className="text-emerald-300 flex items-center gap-1">
-                <span>{currentEmotion?.emoji || '●'}</span>
-                <span>Maya {currentEmotion?.label || 'Speaking...'}</span>
-              </span>
-            ) : (
-              <span>Call Active · Hands-Free</span>
-            )}
-          </div>
-        </div>
-
-        {/* Messages */}
-        <div className="p-4 flex-1 overflow-y-auto space-y-2.5 max-h-56 bg-black/40">
-          {messages.map((m, idx) => {
-            const emotion = m.emotion || (m.speaker === 'ai' ? detectEmotion(m.text) : undefined);
-            return (
-              <div
-                key={idx}
-                className={`flex flex-col ${m.speaker === 'user' ? 'items-end' : 'items-start'} animate-slide-up`}
-              >
-                {m.speaker === 'ai' && emotion && (
-                  <div className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1 ${emotion.badgeClass}`}>
-                    <span>{emotion.emoji}</span>
-                    <span>Maya {emotion.label}</span>
-                  </div>
-                )}
-                <div
-                  className={`max-w-[85%] rounded-[18px] px-4 py-2.5 text-[13px] ${
-                    m.speaker === 'user'
-                      ? 'gcore-btn-orange text-white rounded-br-md shadow-sm'
-                      : 'bg-[#0E1117] border border-white/10 text-slate-100 rounded-bl-md shadow-sm'
-                  }`}
-                >
-                  <p className="leading-relaxed font-normal">{m.text}</p>
-                </div>
-                <span className="text-[10px] text-slate-500 mt-1 px-1">
-                  {m.speaker === 'user' ? 'Caller' : 'AI Receptionist Maya'}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Quick Click Prompts */}
-        <div className="px-4 py-3 bg-black/80 border-t border-white/10">
-          <div className="flex flex-wrap gap-1.5">
-            {quickPromptsByLang[selectedLang].map((chip) => (
-              <button
-                key={chip}
-                onClick={() => handleSpeak(chip)}
-                className="gcore-btn-dark hover:border-gcore-orange/40 text-slate-300 hover:text-white px-3 py-1 text-[11px] font-medium transition-apple"
-              >
-                {chip}
+                {l.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 bg-black border-t border-white/10 flex gap-2.5">
-          <button
-            onClick={handleMicClick}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-[13px] font-semibold transition-apple ${
-              isRecording
-                ? 'bg-amber-500 text-white animate-pulse shadow-lg'
-                : 'gcore-btn-orange shadow-gcore-btn'
-            }`}
-          >
-            {isRecording ? <MicOff className="w-4 h-4" strokeWidth={2} /> : <Mic className="w-4 h-4" strokeWidth={2} />}
-            <span>{isRecording ? 'Listening...' : `Speak in ${selectedLang === 'mr' ? 'मराठी' : selectedLang === 'hi' ? 'हिंदी' : 'English'}`}</span>
-          </button>
+        {/* Emotion Prosody Banner */}
+        {currentEmotion && (
+          <div className="px-4 py-1.5 bg-orange-500/10 border-b border-orange-500/20 flex items-center justify-center gap-2 text-[11px] text-orange-300 font-medium">
+            <Sparkles className="w-3 h-3 text-gcore-orange animate-spin-slow" />
+            <span>{currentEmotion.emoji} {currentEmotion.label} ({currentEmotion.pitch}x pitch)</span>
+          </div>
+        )}
 
-          <button
-            onClick={handleClose}
-            className="flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white py-2.5 px-5 rounded-full text-[13px] font-medium transition-apple shadow-sm"
-          >
-            <PhoneOff className="w-4 h-4" strokeWidth={1.5} />
-            <span>End</span>
-          </button>
+        {/* Live Call Messages Stream */}
+        <div className="flex-1 p-4 overflow-y-auto space-y-3">
+          {messages.map((m, idx) => (
+            <div
+              key={idx}
+              className={`flex flex-col ${m.speaker === 'user' ? 'items-end' : 'items-start'}`}
+            >
+              <div
+                className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-xs leading-relaxed ${
+                  m.speaker === 'user'
+                    ? 'gcore-btn-orange text-white rounded-br-xs'
+                    : 'bg-white/10 text-white border border-white/10 rounded-bl-xs'
+                }`}
+              >
+                {m.text}
+              </div>
+              <span className="text-[9px] text-neutral-400 font-mono mt-0.5 px-1">
+                {m.speaker === 'user' ? 'You' : 'Maya (AI Receptionist)'}
+              </span>
+            </div>
+          ))}
+
+          {isAiSpeaking && (
+            <div className="flex items-center gap-2 text-xs text-orange-400 font-medium py-1">
+              <span className="w-2 h-2 rounded-full bg-gcore-orange animate-ping" />
+              <span>Maya is speaking...</span>
+            </div>
+          )}
+
+          {isRecording && (
+            <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium py-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Listening to you...</span>
+            </div>
+          )}
+        </div>
+
+        {/* Call Controls Footer */}
+        <div className="p-4 bg-black/60 border-t border-white/10 shrink-0 space-y-3">
+          {/* Hands-Free Toggle */}
+          <div className="flex items-center justify-between px-2 text-[11px]">
+            <span className="text-neutral-400">Continuous Phone Mode</span>
+            <button
+              onClick={() => setIsHandsFree(!isHandsFree)}
+              className={`px-2 py-0.5 rounded-full font-bold text-[10px] border transition-apple ${
+                isHandsFree
+                  ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-300'
+                  : 'bg-neutral-800 border-white/10 text-neutral-400'
+              }`}
+            >
+              {isHandsFree ? 'AUTO SPEECH ON' : 'MANUAL MIC'}
+            </button>
+          </div>
+
+          {/* Quick Voice Prompt Buttons */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[11px]">
+            <button
+              onClick={() => handleSpeak(selectedLang === 'mr' ? 'माझा दात खूप दुखतोय, काय करू?' : selectedLang === 'hi' ? 'मेरे दांत में बहुत दर्द है' : 'I have a terrible toothache')}
+              className="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 whitespace-nowrap text-[10px]"
+            >
+              🦷 {selectedLang === 'mr' ? 'दात दुखतोय' : 'Toothache'}
+            </button>
+            <button
+              onClick={() => handleSpeak(selectedLang === 'mr' ? 'रूट कॅनलची फी किती आहे?' : selectedLang === 'hi' ? 'रूट कैनाल की फीस कितनी है?' : 'What is the root canal cost?')}
+              className="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 whitespace-nowrap text-[10px]"
+            >
+              💰 {selectedLang === 'mr' ? 'रूट कॅनल फी' : 'Fees'}
+            </button>
+            <button
+              onClick={() => handleSpeak(selectedLang === 'mr' ? 'उद्या दुपारी २ वाजता वेळ मिळेल का?' : selectedLang === 'hi' ? 'कल दोपहर 2 बजे समय मिलेगा?' : 'Book for tomorrow 2 PM')}
+              className="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 whitespace-nowrap text-[10px]"
+            >
+              📅 {selectedLang === 'mr' ? 'उद्या २ वाजता' : 'Book 2PM'}
+            </button>
+          </div>
+
+          {/* Action Buttons: Mic & Hang Up */}
+          <div className="flex items-center justify-center gap-6 pt-1">
+            <button
+              onClick={isRecording ? () => recognitionRef.current?.stop() : startListening}
+              className={`w-13 h-13 rounded-full flex items-center justify-center transition-apple shadow-lg ${
+                isRecording
+                  ? 'bg-emerald-500 text-white animate-pulse ring-4 ring-emerald-500/30'
+                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
+              }`}
+              title="Push to Speak"
+            >
+              {isRecording ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6 text-neutral-400" />}
+            </button>
+
+            <button
+              onClick={handleEndCall}
+              className="w-13 h-13 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center transition-apple shadow-lg ring-4 ring-rose-500/30"
+              title="End Call"
+            >
+              <PhoneOff className="w-6 h-6" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
