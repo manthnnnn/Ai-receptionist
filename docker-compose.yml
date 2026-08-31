@@ -1,11 +1,52 @@
 version: '3.8'
 
 services:
-  app:
-    build: .
+  # Next.js 14 Frontend & Core API Orchestrator
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-clinic-web
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - PORT=3000
       - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - SUPABASE_URL=${SUPABASE_URL:-https://your-project.supabase.co}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-dummy-key}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER:-}
     restart: unless-stopped
+    networks:
+      - clinic-network
+
+  # Python LiveKit Real-Time Voice Worker
+  voice-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-clinic-voice-worker
+    depends_on:
+      - web
+    environment:
+      - NEXTJS_API_BASE=http://web:3000/api
+      - LIVEKIT_URL=${LIVEKIT_URL:-ws://localhost:7880}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-secret}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY:-}
+      - CARTESIA_API_KEY=${CARTESIA_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - SUPABASE_URL=${SUPABASE_URL:-https://your-project.supabase.co}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-dummy-key}
+    restart: unless-stopped
+    networks:
+      - clinic-network
+
+networks:
+  clinic-network:
+    driver: bridge

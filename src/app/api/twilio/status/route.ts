@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
     let fromNumber = '';
     let toNumber = '';
     let timestamp = '';
+    let recordingUrl = '';
 
     const contentType = req.headers.get('content-type') || '';
 
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
       fromNumber = json.From || json.from || json.caller_phone || '+91-UNKNOWN';
       toNumber = json.To || json.to || '';
       timestamp = json.Timestamp || json.timestamp || json.ended_at || new Date().toISOString();
+      recordingUrl = json.RecordingUrl || json.recording_url || json.audio_url || '';
     } else {
       const formData = await req.formData().catch(() => new FormData());
       callSid = (formData.get('CallSid') as string) || (formData.get('call_sid') as string) || '';
@@ -29,6 +31,7 @@ export async function POST(req: NextRequest) {
       fromNumber = (formData.get('From') as string) || '+91-UNKNOWN';
       toNumber = (formData.get('To') as string) || '';
       timestamp = (formData.get('Timestamp') as string) || new Date().toISOString();
+      recordingUrl = (formData.get('RecordingUrl') as string) || (formData.get('recording_url') as string) || '';
     }
 
     const durationSec = callDuration ? parseInt(String(callDuration), 10) : 0;
@@ -62,6 +65,7 @@ export async function POST(req: NextRequest) {
         duration_seconds: durationSec > 0 ? durationSec : existing.duration_seconds,
         ended_at: timestamp || new Date().toISOString(),
         outcome: finalOutcome,
+        recording_url: recordingUrl || existing.recording_url,
         transfer_status: normStatus === 'busy' || normStatus === 'failed' ? 'ESCALATED_TO_HUMAN' : undefined,
       });
     } else if (callSid) {
@@ -74,6 +78,7 @@ export async function POST(req: NextRequest) {
         duration_seconds: durationSec,
         call_intent: 'Inbound Twilio Call',
         outcome: terminalOutcome,
+        recording_url: recordingUrl || undefined,
         transfer_status: normStatus === 'busy' || normStatus === 'failed' ? 'ESCALATED_TO_HUMAN' : undefined,
         transcript_preview: `Twilio call finished with terminal status: ${callStatus} (${durationSec}s)`,
       });
@@ -85,6 +90,7 @@ export async function POST(req: NextRequest) {
       call_status: callStatus,
       duration_seconds: durationSec,
       ended_at: timestamp,
+      recording_url: recordingUrl || existing?.recording_url,
       outcome: existing?.outcome || terminalOutcome,
     });
   } catch (error: any) {

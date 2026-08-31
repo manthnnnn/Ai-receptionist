@@ -168,6 +168,8 @@ export interface CallLog {
   dialogue_turns?: DialogueTurn[];
   total_latency_ms?: number;
   detected_language?: 'en' | 'hi' | 'mr';
+  recording_url?: string;
+  audio_url?: string;
 }
 
 export interface Message {
