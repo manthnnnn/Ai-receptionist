@@ -187,7 +187,77 @@ class LocalStore {
       end_time: '14:00',
     });
 
-    // 5. Patients
+    // 5. Services (Schema Table 9)
+    this.services = [
+      {
+        id: 'srv-1',
+        clinic_id: '00000000-0000-0000-0000-000000000001',
+        name: 'Root Canal Treatment (RCT)',
+        description: 'Single-sitting or multi-visit painless microscopic endodontic treatment',
+        duration_minutes: 45,
+        price: 3500,
+        is_active: true,
+      },
+      {
+        id: 'srv-2',
+        clinic_id: '00000000-0000-0000-0000-000000000001',
+        name: 'Teeth Scaling & Deep Polishing',
+        description: 'Ultrasonic plaque, tartar, and stain removal with fluoride polish',
+        duration_minutes: 30,
+        price: 1200,
+        is_active: true,
+      },
+      {
+        id: 'srv-3',
+        clinic_id: '00000000-0000-0000-0000-000000000001',
+        name: 'Clear Aligners Consultation & 3D Scan',
+        description: 'Comprehensive 3D intraoral digital scan and Invisalign custom treatment plan',
+        duration_minutes: 30,
+        price: 1500,
+        is_active: true,
+      },
+      {
+        id: 'srv-4',
+        clinic_id: '00000000-0000-0000-0000-000000000001',
+        name: 'Dental Implant Consultation',
+        description: 'Surgical implant evaluation, bone density check, and prosthetic planning',
+        duration_minutes: 45,
+        price: 2000,
+        is_active: true,
+      },
+      {
+        id: 'srv-5',
+        clinic_id: '00000000-0000-0000-0000-000000000002',
+        name: 'Acne Scar Laser Resurfacing',
+        description: 'Fractional CO2 laser for deep acne scar removal and collagen remodeling',
+        duration_minutes: 45,
+        price: 4500,
+        is_active: true,
+      },
+    ];
+
+    // 6. Doctor Leaves & Clinic Holidays (Schema Tables 7 & 8)
+    this.leaves = [
+      {
+        id: 'leave-1',
+        doctor_id: '11111111-1111-1111-1111-111111111111',
+        start_at: '2026-09-25T00:00:00Z',
+        end_at: '2026-09-28T23:59:59Z',
+        reason: 'Annual Dental Conference in Singapore',
+      },
+    ];
+
+    this.holidays = [
+      {
+        id: 'hol-1',
+        clinic_id: '00000000-0000-0000-0000-000000000001',
+        start_at: '2026-10-31T00:00:00Z',
+        end_at: '2026-10-31T23:59:59Z',
+        reason: 'Diwali Festival of Lights',
+      },
+    ];
+
+    // 7. Patients
     this.patients = [
       {
         id: '33333333-3333-3333-3333-333333333331',
@@ -818,18 +888,6 @@ class LocalStore {
     return this.availability.filter((a) => a.doctor_id === doctorId);
   }
 
-  getDoctorBreaks(doctorId: string): DoctorBreak[] {
-    return this.breaks.filter((b) => b.doctor_id === doctorId);
-  }
-
-  getDoctorLeaves(doctorId: string): DoctorLeave[] {
-    return this.leaves.filter((l) => l.doctor_id === doctorId);
-  }
-
-  getClinicHolidays(clinicId: string): ClinicHoliday[] {
-    return this.holidays.filter((h) => h.clinic_id === clinicId);
-  }
-
   // Appointments
   getAppointments(clinicId: string, filters?: { date?: string; doctorId?: string; status?: string }): Appointment[] {
     return this.appointments.filter((a) => {
@@ -994,18 +1052,6 @@ class LocalStore {
       appointment: app,
       message: 'Appointment has been rescheduled successfully.',
     };
-  }
-
-  // Patients
-  getPatients(clinicId: string, query?: string): Patient[] {
-    return this.patients.filter((p) => {
-      if (p.clinic_id !== clinicId) return false;
-      if (query) {
-        const q = query.toLowerCase();
-        return p.name.toLowerCase().includes(q) || p.phone.includes(q);
-      }
-      return true;
-    });
   }
 
   // Call Logs & Recording
@@ -1318,31 +1364,255 @@ class LocalStore {
     return this.faqs.length < initialLen;
   }
 
-  // Stats Calculator
-  getStats(clinicId: string): ClinicStats {
-    const clinicAppointments = this.appointments.filter((a) => a.clinic_id === clinicId && a.status === 'CONFIRMED');
+  // ── Services (Schema Table 9) ──────────────────────────────
+  getServices(clinicId?: string): Service[] {
+    this.ensureAdvancedStoreInitialized();
+    if (clinicId) {
+      return this.services.filter((s) => s.clinic_id === clinicId);
+    }
+    return this.services;
+  }
+
+  getServiceById(id: string): Service | undefined {
+    this.ensureAdvancedStoreInitialized();
+    return this.services.find((s) => s.id === id);
+  }
+
+  createService(data: Partial<Service> & { clinic_id: string; name: string }): Service {
+    this.ensureAdvancedStoreInitialized();
+    const newService: Service = {
+      id: `srv-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      clinic_id: data.clinic_id,
+      name: data.name,
+      description: data.description || '',
+      duration_minutes: data.duration_minutes || 30,
+      price: data.price !== undefined ? data.price : 500,
+      is_active: data.is_active !== undefined ? data.is_active : true,
+    };
+    this.services.push(newService);
+    return newService;
+  }
+
+  updateService(id: string, data: Partial<Service>): Service | undefined {
+    this.ensureAdvancedStoreInitialized();
+    const srv = this.services.find((s) => s.id === id);
+    if (!srv) return undefined;
+    Object.assign(srv, data);
+    return srv;
+  }
+
+  deleteService(id: string): boolean {
+    this.ensureAdvancedStoreInitialized();
+    const initialLen = this.services.length;
+    this.services = this.services.filter((s) => s.id !== id);
+    return this.services.length < initialLen;
+  }
+
+  // ── Doctor Breaks (Schema Table 6) ──────────────────────────
+  getDoctorBreaks(doctorId: string): DoctorBreak[] {
+    this.ensureAdvancedStoreInitialized();
+    return this.breaks.filter((b) => b.doctor_id === doctorId);
+  }
+
+  setDoctorBreaks(doctorId: string, breaks: DoctorBreak[]): void {
+    this.ensureAdvancedStoreInitialized();
+    this.breaks = this.breaks.filter((b) => b.doctor_id !== doctorId).concat(breaks);
+  }
+
+  // ── Doctor Leaves (Schema Table 7) ──────────────────────────
+  getDoctorLeaves(doctorId: string): DoctorLeave[] {
+    this.ensureAdvancedStoreInitialized();
+    return this.leaves.filter((l) => l.doctor_id === doctorId);
+  }
+
+  addDoctorLeave(data: Omit<DoctorLeave, 'id'>): DoctorLeave {
+    this.ensureAdvancedStoreInitialized();
+    const newLeave: DoctorLeave = {
+      id: `leave-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      ...data,
+    };
+    this.leaves.push(newLeave);
+    return newLeave;
+  }
+
+  deleteDoctorLeave(id: string): boolean {
+    this.ensureAdvancedStoreInitialized();
+    const initialLen = this.leaves.length;
+    this.leaves = this.leaves.filter((l) => l.id !== id);
+    return this.leaves.length < initialLen;
+  }
+
+  // ── Clinic Holidays (Schema Table 8) ────────────────────────
+  getClinicHolidays(clinicId: string): ClinicHoliday[] {
+    this.ensureAdvancedStoreInitialized();
+    return this.holidays.filter((h) => h.clinic_id === clinicId);
+  }
+
+  addClinicHoliday(data: Omit<ClinicHoliday, 'id'>): ClinicHoliday {
+    this.ensureAdvancedStoreInitialized();
+    const newHol: ClinicHoliday = {
+      id: `hol-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      ...data,
+    };
+    this.holidays.push(newHol);
+    return newHol;
+  }
+
+  deleteClinicHoliday(id: string): boolean {
+    this.ensureAdvancedStoreInitialized();
+    const initialLen = this.holidays.length;
+    this.holidays = this.holidays.filter((h) => h.id !== id);
+    return this.holidays.length < initialLen;
+  }
+
+  // ── Patients & Medical Records (Schema Table 10) ────────────
+  getPatients(clinicId?: string, search?: string): Patient[] {
+    this.ensureAdvancedStoreInitialized();
+    let res = this.patients;
+    if (clinicId) {
+      res = res.filter((p) => p.clinic_id === clinicId);
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      res = res.filter((p) => p.name.toLowerCase().includes(q) || p.phone.includes(q) || (p.email && p.email.toLowerCase().includes(q)));
+    }
+    return res;
+  }
+
+  getPatientById(id: string): Patient | undefined {
+    this.ensureAdvancedStoreInitialized();
+    return this.patients.find((p) => p.id === id);
+  }
+
+  getPatientWithHistory(id: string): { patient: Patient; appointments: Appointment[]; call_logs: CallLog[] } | null {
+    this.ensureAdvancedStoreInitialized();
+    const patient = this.patients.find((p) => p.id === id);
+    if (!patient) return null;
+
+    const patientAppointments = this.appointments.filter(
+      (a) => a.patient_id === id || a.patient_phone === patient.phone
+    );
+
+    const cleanPhone = patient.phone.replace(/\D/g, '');
+    const patientCalls = this.callLogs.filter((c) => {
+      const cleanCallPhone = (c.caller_phone || '').replace(/\D/g, '');
+      return cleanCallPhone.endsWith(cleanPhone) || cleanPhone.endsWith(cleanCallPhone);
+    });
+
+    return {
+      patient,
+      appointments: patientAppointments,
+      call_logs: patientCalls,
+    };
+  }
+
+  // Safety initializer for hot reload
+  ensureAdvancedStoreInitialized() {
+    this.ensureConversationsInitialized();
+    if (!this.services || this.services.length === 0) {
+      this.services = [
+        {
+          id: 'srv-1',
+          clinic_id: '00000000-0000-0000-0000-000000000001',
+          name: 'Root Canal Treatment (RCT)',
+          description: 'Single-sitting or multi-visit painless microscopic endodontic treatment',
+          duration_minutes: 45,
+          price: 3500,
+          is_active: true,
+        },
+        {
+          id: 'srv-2',
+          clinic_id: '00000000-0000-0000-0000-000000000001',
+          name: 'Teeth Scaling & Deep Polishing',
+          description: 'Ultrasonic plaque, tartar, and stain removal with fluoride polish',
+          duration_minutes: 30,
+          price: 1200,
+          is_active: true,
+        },
+        {
+          id: 'srv-3',
+          clinic_id: '00000000-0000-0000-0000-000000000001',
+          name: 'Clear Aligners Consultation & 3D Scan',
+          description: 'Comprehensive 3D intraoral digital scan and Invisalign custom treatment plan',
+          duration_minutes: 30,
+          price: 1500,
+          is_active: true,
+        },
+      ];
+    }
+    if (!this.breaks) this.breaks = [];
+    if (!this.leaves) this.leaves = [];
+    if (!this.holidays) this.holidays = [];
+    if (!this.patients) this.patients = [];
+  }
+
+  // ── Deep Analytics & COGS Engine ────────────────────────────
+  getClinicAnalytics(clinicId: string) {
+    const clinicAppointments = this.appointments.filter((a) => a.clinic_id === clinicId);
+    const confirmedApps = clinicAppointments.filter((a) => a.status === 'CONFIRMED');
     const clinicCalls = this.callLogs.filter((c) => c.clinic_id === clinicId);
     const bookedCalls = clinicCalls.filter((c) => c.outcome === 'BOOKED').length;
-    const rate = clinicCalls.length > 0 ? (bookedCalls / clinicCalls.length) * 100 : 33.3;
+    const escalatedCalls = clinicCalls.filter((c) => c.outcome === 'ESCALATED').length;
+    const abandonedCalls = clinicCalls.filter((c) => c.outcome === 'ABANDONED').length;
 
-    // Calculate total minutes
-    const totalSecs = clinicCalls.reduce((acc, c) => acc + c.duration_seconds, 0);
-    const totalMins = totalSecs / 60;
-    const directCogs = Number((totalMins * 3.23).toFixed(2)); // ₹3.23 / min
+    const totalSeconds = clinicCalls.reduce((acc, c) => acc + (c.duration_seconds || 0), 0);
+    const totalMinutes = Number((totalSeconds / 60).toFixed(1));
 
-    // Calculate estimated consultation fees
-    const estRevenue = clinicAppointments.reduce((acc, app) => {
+    // Unit Economics: ₹3.23 / min
+    // Breakdown: Deepgram STT ₹0.35 + Groq LLM ₹0.40 + Cartesia TTS ₹1.20 + Twilio SIP ₹1.28
+    const directCogs = Number((totalMinutes * 3.23).toFixed(2));
+    const cogsBreakdown = {
+      stt_deepgram: Number((totalMinutes * 0.35).toFixed(2)),
+      llm_groq: Number((totalMinutes * 0.40).toFixed(2)),
+      tts_cartesia: Number((totalMinutes * 1.20).toFixed(2)),
+      telephony_sip: Number((totalMinutes * 1.28).toFixed(2)),
+      total_rate_per_min: 3.23,
+    };
+
+    const estRevenue = confirmedApps.reduce((acc, app) => {
       const doc = this.getDoctorById(app.doctor_id);
       return acc + (doc?.consultation_fee || 500);
     }, 0);
 
+    const conversionRate = clinicCalls.length > 0
+      ? Number(((bookedCalls / clinicCalls.length) * 100).toFixed(1))
+      : 33.3;
+
+    // Language Breakdown
+    const languages = { en: 0, hi: 0, mr: 0 };
+    clinicCalls.forEach((c) => {
+      const lang = c.detected_language || 'en';
+      if (lang in languages) languages[lang as keyof typeof languages]++;
+    });
+
     return {
-      appointments_count: clinicAppointments.length,
+      clinic_id: clinicId,
+      appointments_count: confirmedApps.length,
+      total_appointments: clinicAppointments.length,
       total_calls_count: clinicCalls.length,
-      booking_rate_percentage: Number(rate.toFixed(1)),
-      avg_turn_latency_ms: 579,
-      direct_cogs_inr: directCogs || 11.63,
-      est_revenue_inr: estRevenue || 1950,
+      booked_calls: bookedCalls,
+      escalated_calls: escalatedCalls,
+      abandoned_calls: abandonedCalls,
+      booking_rate_percentage: conversionRate,
+      avg_turn_latency_ms: 575,
+      total_telephony_minutes: totalMinutes,
+      direct_cogs_inr: directCogs,
+      direct_cogs_breakdown: cogsBreakdown,
+      est_revenue_inr: estRevenue,
+      language_distribution: languages,
+    };
+  }
+
+  // Stats Calculator
+  getStats(clinicId: string): ClinicStats {
+    const analytics = this.getClinicAnalytics(clinicId);
+    return {
+      appointments_count: analytics.appointments_count,
+      total_calls_count: analytics.total_calls_count,
+      booking_rate_percentage: analytics.booking_rate_percentage,
+      avg_turn_latency_ms: analytics.avg_turn_latency_ms,
+      direct_cogs_inr: analytics.direct_cogs_inr,
+      est_revenue_inr: analytics.est_revenue_inr,
     };
   }
 }

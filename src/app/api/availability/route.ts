@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
       doctor_id: doctorId,
       date: dateStr,
       available_slots_count: slots.length,
+      available_slots: slots,
       slots,
     });
   } catch (error: any) {
