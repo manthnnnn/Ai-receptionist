@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useClinic } from '../layout/clinic-context';
-import { Mic, MicOff, X, Zap, Volume2, CheckCircle2, Radio, PhoneCall, PhoneOff } from 'lucide-react';
+import { Mic, MicOff, X, Zap, Volume2, CheckCircle2, Radio, PhoneCall, PhoneOff, Send, Sparkles } from 'lucide-react';
 
 interface DialogTurn {
   id: string;
@@ -12,7 +12,7 @@ interface DialogTurn {
   lang?: string;
 }
 
-// Clean and enhance text for natural, emotive speech synthesis
+// Clean and enhance text for natural speech synthesis
 function cleanSpeechText(text: string, lang: 'mr' | 'hi' | 'en'): string {
   let cleaned = text;
 
@@ -43,19 +43,28 @@ export function VoiceTestModal() {
   const { isVoiceTesterOpen, setIsVoiceTesterOpen, activeClinicId, activeClinic, refreshData } = useClinic();
   const [isRecording, setIsRecording] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
-  const [isHandsFree, setIsHandsFree] = useState(true); // Default true for ChatGPT-like hands-free voice
-  const [selectedLang, setSelectedLang] = useState<'en' | 'hi' | 'mr'>('mr'); // Default Marathi for user
+  const [isHandsFree, setIsHandsFree] = useState(true);
+  const [selectedLang, setSelectedLang] = useState<'en' | 'hi' | 'mr'>('en'); // Default English
   const [dialog, setDialog] = useState<DialogTurn[]>([]);
+  const [inputText, setInputText] = useState('');
   const [statusText, setStatusText] = useState('Ready');
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [currentCallId, setCurrentCallId] = useState<string>('');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const recognitionRef = useRef<any>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const isHandsFreeRef = useRef(isHandsFree);
   const selectedLangRef = useRef(selectedLang);
+  const dialogEndRef = useRef<HTMLDivElement>(null);
 
   isHandsFreeRef.current = isHandsFree;
   selectedLangRef.current = selectedLang;
+
+  // Auto-scroll messages
+  useEffect(() => {
+    dialogEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [dialog]);
 
   // Load available browser voices
   useEffect(() => {
@@ -68,24 +77,43 @@ export function VoiceTestModal() {
     }
   }, []);
 
-  // Update initial greeting when language or activeClinic changes
+  // Update initial greeting when modal opens or language changes
   useEffect(() => {
-    const clinicName = activeClinic?.name || 'Apollo Dental Clinic';
-    let text = `नमस्कार! ${clinicName} मध्ये आपले स्वागत आहे. मी आपली काय मदत करू शकतो?`;
-    if (selectedLang === 'hi') {
-      text = `नमस्ते! ${clinicName} में आपका स्वागत है। मैं आपकी क्या सहायता कर सकती हूँ?`;
-    } else if (selectedLang === 'en') {
-      text = `Hello! Thank you for calling ${clinicName}. My name is Maya. How can I assist you today?`;
+    if (isVoiceTesterOpen) {
+      const callId = `voice-test-${Date.now()}`;
+      setCurrentCallId(callId);
+
+      const clinicName = activeClinic?.name || 'Apollo Dental Clinic';
+      let text = `Hello! Thank you for calling ${clinicName}. My name is Maya, your AI receptionist. How can I assist you today?`;
+      if (selectedLang === 'hi') {
+        text = `नमस्ते! ${clinicName} में आपका स्वागत है। मैं आपकी क्या सहायता कर सकती हूँ?`;
+      } else if (selectedLang === 'mr') {
+        text = `नमस्कार! ${clinicName} मध्ये आपले स्वागत आहे. मी आपली काय मदत करू शकतो?`;
+      }
+
+      setDialog([
+        {
+          id: `init-${selectedLang}`,
+          speaker: 'ai',
+          text,
+          lang: selectedLang,
+        },
+      ]);
+
+      speakWithNeuralVoice(text, selectedLang, () => {});
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
     }
-    setDialog([
-      {
-        id: `init-${selectedLang}`,
-        speaker: 'ai',
-        text,
-        lang: selectedLang,
-      },
-    ]);
-  }, [selectedLang, activeClinic]);
+  }, [isVoiceTesterOpen, selectedLang, activeClinic]);
 
   // Waveform animation renderer
   useEffect(() => {
@@ -131,7 +159,7 @@ export function VoiceTestModal() {
     return () => cancelAnimationFrame(animationId);
   }, [isRecording, isAiSpeaking]);
 
-  // Start Speech Recognition (Microphone)
+  // Speech Recognition (Microphone)
   const startListening = useCallback(() => {
     if (typeof window === 'undefined') return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -154,7 +182,7 @@ export function VoiceTestModal() {
 
       recognition.onstart = () => {
         setIsRecording(true);
-        setStatusText(currentLang === 'mr' ? '● मी ऐकत आहे, बोला...' : currentLang === 'hi' ? '● मैं सुन रही हूँ, बोलिए...' : '● Listening...');
+        setStatusText(currentLang === 'mr' ? '● ऐकत आहे, बोला...' : currentLang === 'hi' ? '● मैं सुन रही हूँ, बोलिए...' : '● Listening to speech...');
       };
 
       recognition.onresult = (event: any) => {
@@ -180,7 +208,7 @@ export function VoiceTestModal() {
     }
   }, []);
 
-  // Production-grade Neural TTS: ElevenLabs → Google Neural → Best Browser Voice
+  // Neural TTS Playback
   const speakWithNeuralVoice = useCallback(async (
     text: string,
     lang: 'mr' | 'hi' | 'en',
@@ -188,9 +216,17 @@ export function VoiceTestModal() {
   ) => {
     if (typeof window === 'undefined') return;
 
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+
     const cleanText = cleanSpeechText(text, lang);
 
-    // ── TIER 1: ElevenLabs Neural TTS via our backend API ──────────
+    // 1. Try Neural TTS API first
     try {
       const ttsRes = await fetch('/api/tts', {
         method: 'POST',
@@ -200,124 +236,102 @@ export function VoiceTestModal() {
 
       if (ttsRes.ok && ttsRes.status === 200) {
         const audioBlob = await ttsRes.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        audio.playbackRate = 1.0;
-        
-        audio.onended = () => {
-          URL.revokeObjectURL(audioUrl);
-          setIsAiSpeaking(false);
-          onDone();
-        };
-        audio.onerror = () => {
-          URL.revokeObjectURL(audioUrl);
-          setIsAiSpeaking(false);
-          onDone();
-        };
+        if (audioBlob.size > 100) {
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          audioRef.current = audio;
 
-        setIsAiSpeaking(true);
-        await audio.play();
-        return;
+          audio.onended = () => {
+            URL.revokeObjectURL(audioUrl);
+            setIsAiSpeaking(false);
+            onDone();
+          };
+          audio.onerror = () => {
+            URL.revokeObjectURL(audioUrl);
+            setIsAiSpeaking(false);
+            onDone();
+          };
+
+          setIsAiSpeaking(true);
+          await audio.play();
+          return;
+        }
       }
     } catch (err) {
-      // ElevenLabs unavailable — fall through to browser TTS
+      console.warn('TTS streaming failed, falling back to browser synthesis:', err);
     }
 
-    // ── TIER 2: Best Available Browser Neural Voice ─────────────────
-    if (!('speechSynthesis' in window)) { onDone(); return; }
+    // 2. Fallback to Browser SpeechSynthesis
+    if (!('speechSynthesis' in window)) {
+      onDone();
+      return;
+    }
 
-    window.speechSynthesis.cancel();
-    await new Promise(r => setTimeout(r, 60));
-
-    const voices = window.speechSynthesis.getVoices();
+    const voices = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
     const utter = new SpeechSynthesisUtterance(cleanText);
 
-    // Voice priority cascade — prefer Google Neural/Natural voices
     let voice: SpeechSynthesisVoice | null = null;
-
     if (lang === 'mr') {
       utter.lang = 'mr-IN';
       voice =
-        voices.find(v => v.lang === 'mr-IN') ||
-        // Google Wavenet/Neural Indian voices
-        voices.find(v => v.name.includes('Google') && (v.lang.includes('hi-IN') || v.name.includes('Swara'))) ||
-        voices.find(v => v.name.includes('Microsoft') && v.lang.includes('hi-IN')) ||
-        voices.find(v => v.lang.includes('hi-IN')) ||
-        voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) ||
-        voices.find(v => v.name.includes('Samantha') || v.name.includes('Karen')) ||
+        voices.find((v) => v.lang === 'mr-IN') ||
+        voices.find((v) => v.name.includes('Google') && (v.lang.includes('hi-IN') || v.name.includes('Swara'))) ||
+        voices.find((v) => v.name.includes('Microsoft') && v.lang.includes('hi-IN')) ||
+        voices.find((v) => v.lang.includes('hi-IN')) ||
+        voices.find((v) => v.name.includes('en-IN')) ||
         null;
     } else if (lang === 'hi') {
       utter.lang = 'hi-IN';
       voice =
-        voices.find(v => v.name.includes('Google') && v.lang === 'hi-IN') ||
-        voices.find(v => v.name === 'Swara' || v.name.includes('Swara')) ||
-        voices.find(v => v.lang === 'hi-IN') ||
-        voices.find(v => v.name.includes('Microsoft') && v.lang.includes('hi')) ||
-        voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) ||
+        voices.find((v) => v.name.includes('Google') && v.lang === 'hi-IN') ||
+        voices.find((v) => v.name.includes('Swara') || v.name.includes('Madhur')) ||
+        voices.find((v) => v.lang === 'hi-IN') ||
+        voices.find((v) => v.name.includes('en-IN')) ||
         null;
     } else {
       utter.lang = 'en-IN';
       voice =
-        // Top-tier: Google Neural en-IN (Neerja, Ravi, etc.)
-        voices.find(v => v.name.includes('Google') && v.lang === 'en-IN') ||
-        voices.find(v => v.name.includes('Neerja') || v.name.includes('Ravi')) ||
-        // MacOS neural voices
-        voices.find(v => v.name === 'Samantha' || v.name === 'Karen' || v.name === 'Moira') ||
-        // Any Google Neural English
-        voices.find(v => v.name.includes('Google') && v.lang.startsWith('en')) ||
-        voices.find(v => v.lang.startsWith('en') && v.localService === false) || // Remote = higher quality
-        voices.find(v => v.lang.startsWith('en')) ||
+        voices.find((v) => v.name.includes('Google') && v.lang === 'en-IN') ||
+        voices.find((v) => v.name.includes('Neerja') || v.name.includes('Ravi')) ||
+        voices.find((v) => v.lang.startsWith('en')) ||
         null;
     }
 
     if (voice) utter.voice = voice;
-
-    // Emotional prosody tuning — natural conversational cadence like ChatGPT
-    // Slightly faster, higher pitch = warm, energetic, empathetic
-    utter.rate  = lang === 'en' ? 1.08 : lang === 'hi' ? 1.02 : 1.0;
-    utter.pitch = lang === 'en' ? 1.10 : lang === 'hi' ? 1.06 : 1.04;
-    utter.volume = 1.0;
+    utter.rate = 1.02;
+    utter.pitch = 1.02;
 
     setIsAiSpeaking(true);
 
-    utter.onend = () => { setIsAiSpeaking(false); onDone(); };
-    utter.onerror = () => { setIsAiSpeaking(false); onDone(); };
-
-    window.speechSynthesis.speak(utter);
-
-    // Chrome TTS watchdog — Chrome sometimes hangs on long utterances
-    const watchdog = setInterval(() => {
-      if (!window.speechSynthesis.speaking) {
-        clearInterval(watchdog);
-      } else {
-        window.speechSynthesis.pause();
-        window.speechSynthesis.resume();
-      }
-    }, 12000);
-
     utter.onend = () => {
-      clearInterval(watchdog);
       setIsAiSpeaking(false);
       onDone();
     };
     utter.onerror = () => {
-      clearInterval(watchdog);
       setIsAiSpeaking(false);
       onDone();
     };
-  }, []);
 
-  // Send turn to backend & handle emotional vocal speech response
+    window.speechSynthesis.speak(utter);
+  }, [availableVoices]);
+
+  // Send turn to backend & handle speech response
   const sendTurn = async (userText: string) => {
     if (!userText.trim()) return;
 
     const userTurn: DialogTurn = { id: `usr-${Date.now()}`, speaker: 'caller', text: userText };
     setDialog((prev) => [...prev, userTurn]);
-    setStatusText('AI thinking...');
+    setInputText('');
+    setStatusText('AI processing response...');
 
     try {
       const groqKey = typeof window !== 'undefined' ? localStorage.getItem('CLINIC_GROQ_API_KEY') || undefined : undefined;
       const openaiKey = typeof window !== 'undefined' ? localStorage.getItem('CLINIC_OPENAI_API_KEY') || undefined : undefined;
+
+      const history = dialog.map((d) => ({
+        role: d.speaker === 'caller' ? ('user' as const) : ('assistant' as const),
+        content: d.text,
+      }));
 
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -325,7 +339,9 @@ export function VoiceTestModal() {
         body: JSON.stringify({
           clinic_id: activeClinicId,
           message: userText,
+          history,
           caller_phone: '+91 98765 43210',
+          call_id: currentCallId,
           groq_api_key: groqKey,
           openai_api_key: openaiKey,
           language: selectedLangRef.current,
@@ -333,7 +349,7 @@ export function VoiceTestModal() {
       });
       const data = await res.json();
 
-      if (data.success) {
+      if (data.success && data.reply) {
         const turnLang = data.language || selectedLangRef.current;
         const aiTurn: DialogTurn = {
           id: `ai-${Date.now()}`,
@@ -347,17 +363,17 @@ export function VoiceTestModal() {
 
         await speakWithNeuralVoice(data.reply, turnLang, () => {
           if (isHandsFreeRef.current) {
-            setTimeout(() => startListening(), 350);
+            setTimeout(() => startListening(), 400);
           }
         });
 
-        if (data.tool_called === 'book_appointment' || data.tool_called === 'cancel_appointment') {
+        if (data.tool_called === 'book_appointment' || data.tool_called === 'cancel_appointment' || data.tool_called === 'reschedule_appointment') {
           refreshData();
         }
       }
     } catch (err) {
-      console.error('AI chat error:', err);
-      setStatusText('Error');
+      console.error('Turn error:', err);
+      setStatusText('Ready');
     }
   };
 
@@ -365,41 +381,51 @@ export function VoiceTestModal() {
     if (isRecording) {
       if (recognitionRef.current) recognitionRef.current.stop();
       setIsRecording(false);
-      setStatusText('Ready');
     } else {
       startListening();
     }
+  };
+
+  const handleClose = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsVoiceTesterOpen(false);
   };
 
   if (!isVoiceTesterOpen) return null;
 
   const quickPromptsByLang = {
     en: [
-      'Book appointment with Dr. Verma tomorrow',
-      'What is the fee for root canal?',
-      'Do you accept Star Health insurance?',
-      'Where is the clinic located?',
-      'I have severe toothache and pain',
+      'What are your consultation fees?',
+      'Check available slots tomorrow',
+      'Book Dr. Verma tomorrow at 11:00 AM for Rahul',
+      'Are you open on Saturdays?',
     ],
     hi: [
-      'कल डॉ. वर्मा के साथ अपॉइंटमेंट बुक करें',
-      'रूट कैनाल की फीस कितनी है?',
-      'क्या बीमा क्लेम उपलब्ध है?',
-      'क्लीनिक कहाँ स्थित है?',
-      'दांत में बहुत तेज दर्द हो रहा है',
+      'डॉक्टर की फीस क्या है?',
+      'कल के स्लॉट बताइए',
+      'कल 11:00 बजे डॉक्टर वर्मा के साथ बुक करें',
+      'क्या शनिवार को क्लिनिक खुला है?',
     ],
     mr: [
-      'मराठीमध्ये बोला.',
-      'उद्या डॉ. वर्मा यांच्यासोबत वेळ बुक करा',
-      'रूट कॅनलची फी किती आहे?',
-      'दवाखाना कुठे आहे आणि पार्किंग आहे का?',
-      'माझा दात खूप दुखतोय, काय करू?',
+      'तपासणी शुल्क किती आहे?',
+      'उद्याच्या वेळा सांगा',
+      'उद्या ११:०० वाजता डॉक्टर वर्मांची भेट बुक करा',
+      'शनिवारी दवाखाना चालू असतो का?',
     ],
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
-      <div className="gcore-card border border-white/15 w-full max-w-2xl rounded-apple-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scale-in">
+      <div className="gcore-card border border-white/15 w-full max-w-2xl rounded-apple-xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-scale-in bg-[#080808]">
         {/* Header */}
         <div className="px-6 py-4 bg-black/90 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -407,8 +433,8 @@ export function VoiceTestModal() {
               <Mic className="w-4 h-4" strokeWidth={2} />
             </div>
             <div>
-              <h3 className="font-bold text-white text-[15px] tracking-tight">Fluent Conversational Voice Console</h3>
-              <p className="text-xs text-slate-400">Hands-Free Automatic Talking · Marathi, Hindi &amp; English</p>
+              <h3 className="font-bold text-white text-[15px] tracking-tight">AI Receptionist Voice Console</h3>
+              <p className="text-xs text-neutral-400">Continuous Voice &amp; Live Tool Execution · Sub-300ms</p>
             </div>
           </div>
 
@@ -420,49 +446,45 @@ export function VoiceTestModal() {
               className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-apple flex items-center gap-1.5 ${
                 isHandsFree 
                   ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300 shadow-sm' 
-                  : 'bg-black border-white/10 text-slate-400'
+                  : 'bg-black border-white/10 text-neutral-400'
               }`}
-              title="Hands-Free Continuous Voice: AI speaks and automatically listens back without button clicks"
+              title="Hands-Free Continuous Voice: AI speaks and automatically listens back"
             >
-              <Radio className={`w-3 h-3 ${isHandsFree ? 'animate-pulse text-emerald-400' : 'text-slate-500'}`} />
+              <Radio className={`w-3 h-3 ${isHandsFree ? 'animate-pulse text-emerald-400' : 'text-neutral-500'}`} />
               <span>{isHandsFree ? 'Hands-Free On' : 'Manual Mic'}</span>
             </button>
 
             {/* Language Switcher */}
             <div className="flex items-center bg-black border border-white/10 rounded-lg p-0.5 text-xs">
               <button
-                onClick={() => setSelectedLang('mr')}
-                className={`px-2.5 py-1 rounded-md transition-apple font-medium ${
-                  selectedLang === 'mr' ? 'bg-gcore-orange text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                onClick={() => setSelectedLang('en')}
+                className={`px-2.5 py-1 rounded-md transition-apple font-semibold ${
+                  selectedLang === 'en' ? 'bg-gcore-orange text-white shadow-sm' : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                मराठी
+                EN
               </button>
               <button
                 onClick={() => setSelectedLang('hi')}
-                className={`px-2.5 py-1 rounded-md transition-apple font-medium ${
-                  selectedLang === 'hi' ? 'bg-gcore-orange text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                className={`px-2.5 py-1 rounded-md transition-apple font-semibold ${
+                  selectedLang === 'hi' ? 'bg-gcore-orange text-white shadow-sm' : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 हिंदी
               </button>
               <button
-                onClick={() => setSelectedLang('en')}
-                className={`px-2.5 py-1 rounded-md transition-apple font-medium ${
-                  selectedLang === 'en' ? 'bg-gcore-orange text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                onClick={() => setSelectedLang('mr')}
+                className={`px-2.5 py-1 rounded-md transition-apple font-semibold ${
+                  selectedLang === 'mr' ? 'bg-gcore-orange text-white shadow-sm' : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                English
+                मराठी
               </button>
             </div>
 
             <button
-              onClick={() => {
-                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-                if (recognitionRef.current) recognitionRef.current.stop();
-                setIsVoiceTesterOpen(false);
-              }}
-              className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-apple ml-1"
+              onClick={handleClose}
+              className="text-neutral-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-apple ml-1"
             >
               <X className="w-5 h-5" strokeWidth={1.5} />
             </button>
@@ -473,71 +495,64 @@ export function VoiceTestModal() {
         <div className="p-4 bg-black/60 border-b border-white/10">
           <div className="bg-black/90 border border-white/10 rounded-apple-lg p-3 flex flex-col gap-2 shadow-inner">
             <div className="flex items-center justify-between text-xs">
-              <span className="flex items-center gap-1.5 text-slate-300 font-medium">
+              <span className="flex items-center gap-1.5 text-neutral-300 font-medium">
                 <Volume2 className="w-3.5 h-3.5 text-gcore-orange" strokeWidth={1.8} />
-                Live Audio Stream ({selectedLang === 'mr' ? 'मराठी - Marathi' : selectedLang === 'hi' ? 'हिंदी - Hindi' : 'English'})
+                Live Audio Stream ({selectedLang === 'en' ? 'English' : selectedLang === 'hi' ? 'Hindi' : 'Marathi'})
               </span>
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium ${
                 isRecording ? 'bg-gcore-orange/20 text-orange-300 border border-gcore-orange/40 animate-pulse' :
                 isAiSpeaking ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                'bg-slate-900 text-slate-400 border border-white/5'
+                'bg-neutral-900 text-neutral-400 border border-white/5'
               }`}>
-                {isRecording ? '● ऐकत आहे (Listening...)' : isAiSpeaking ? '● बोलत आहे (Speaking...)' : statusText}
+                {isRecording ? '● Listening to user...' : isAiSpeaking ? '● AI Speaking...' : statusText}
               </span>
             </div>
             <canvas ref={canvasRef} width={560} height={44} className="w-full h-11 rounded bg-black" />
           </div>
         </div>
 
-        {/* Latency & Groq Badge Bar */}
-        <div className="px-6 py-2 bg-black/40 border-b border-white/10 flex items-center justify-between text-xs text-slate-400 font-medium">
-          <span className="flex items-center gap-1.5">
-            <Zap className="w-3 h-3 text-gcore-orange" strokeWidth={1.8} />
-            Live Conversational Flow
-          </span>
-          <span className="text-[11px] font-mono text-orange-300">
-            Groq LLaMA 3.3 · Sub-250ms Fluent TTFT
-          </span>
-        </div>
-
         {/* Dialogue Scroll View */}
-        <div className="p-5 flex-1 overflow-y-auto space-y-3 max-h-72 bg-black/40">
+        <div className="p-4 flex-1 overflow-y-auto space-y-3 min-h-[200px] max-h-[260px] bg-black/40 text-xs">
           {dialog.map((turn) => (
             <div
               key={turn.id}
               className={`flex flex-col ${turn.speaker === 'caller' ? 'items-end' : 'items-start'} animate-slide-up`}
             >
               <div
-                className={`max-w-[82%] rounded-[18px] px-4 py-2.5 text-[13px] ${
+                className={`max-w-[82%] rounded-[16px] px-4 py-2.5 text-[13px] leading-relaxed ${
                   turn.speaker === 'caller'
-                    ? 'gcore-btn-orange text-white rounded-br-md shadow-sm'
-                    : 'bg-[#0E1117] border border-white/10 text-slate-100 rounded-bl-md shadow-sm'
+                    ? 'bg-gcore-orange text-white rounded-br-none shadow-sm'
+                    : 'bg-[#121212] border border-white/10 text-neutral-100 rounded-bl-none shadow-sm'
                 }`}
               >
-                <p className="leading-relaxed font-normal">{turn.text}</p>
+                <p className="font-normal">{turn.text}</p>
                 {turn.latency_ms && (
                   <div className="mt-1 text-[10px] opacity-70 font-mono flex items-center gap-1">
                     <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" strokeWidth={1.8} />
-                    {turn.latency_ms}ms
+                    {turn.latency_ms}ms turn latency
                   </div>
                 )}
               </div>
-              <span className="text-[10px] text-slate-500 mt-1 px-1">
+              <span className="text-[10px] text-neutral-500 mt-1 px-1 font-mono">
                 {turn.speaker === 'caller' ? 'Caller' : 'AI Receptionist Maya'}
               </span>
             </div>
           ))}
+          <div ref={dialogEndRef} />
         </div>
 
         {/* Quick Clickable Prompts */}
-        <div className="px-5 py-3 bg-black/80 border-t border-white/10">
-          <p className="text-[11px] text-slate-400 mb-1.5">Quick voice test in {selectedLang === 'mr' ? 'मराठी' : selectedLang === 'hi' ? 'हिंदी' : 'English'}:</p>
+        <div className="px-5 py-2.5 bg-black/80 border-t border-white/10">
+          <div className="text-[11px] text-neutral-400 font-medium mb-1.5 flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-gcore-orange" />
+            <span>Suggested prompts:</span>
+          </div>
           <div className="flex flex-wrap gap-1.5">
             {quickPromptsByLang[selectedLang].map((prompt) => (
               <button
                 key={prompt}
                 onClick={() => sendTurn(prompt)}
-                className="gcore-btn-dark hover:border-gcore-orange/40 text-slate-300 hover:text-white px-3 py-1 text-[11px] font-medium transition-apple"
+                className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-gcore-orange/50 text-neutral-300 hover:text-white px-2.5 py-1 text-[11px] rounded-apple transition-apple"
               >
                 {prompt}
               </button>
@@ -545,30 +560,52 @@ export function VoiceTestModal() {
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="px-5 py-3.5 bg-black border-t border-white/10 flex items-center justify-between">
-          <button
-            onClick={() => {
-              if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-              if (recognitionRef.current) recognitionRef.current.stop();
-              setIsVoiceTesterOpen(false);
+        {/* Text Input + Mic Controls */}
+        <div className="p-4 bg-black border-t border-white/10 flex flex-col gap-2.5">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendTurn(inputText);
             }}
-            className="px-4 py-2 rounded-apple text-xs font-medium text-slate-400 hover:text-white transition-apple"
+            className="flex items-center gap-2"
           >
-            Close
-          </button>
-          
-          <button
-            onClick={handleToggleMic}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold transition-apple ${
-              isRecording
-                ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
-                : 'gcore-btn-orange shadow-gcore-btn'
-            }`}
-          >
-            {isRecording ? <MicOff className="w-4 h-4" strokeWidth={2} /> : <Mic className="w-4 h-4" strokeWidth={2} />}
-            <span>{isRecording ? 'Listening...' : `Speak in ${selectedLang === 'mr' ? 'मराठी' : selectedLang === 'hi' ? 'हिंदी' : 'English'}`}</span>
-          </button>
+            <input
+              type="text"
+              placeholder={isRecording ? 'Listening from your mic...' : `Type a question or message in ${selectedLang === 'en' ? 'English' : selectedLang === 'hi' ? 'Hindi' : 'Marathi'}...`}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              className="flex-1 bg-[#111] border border-white/15 rounded-full px-4 py-2 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-gcore-orange"
+            />
+            <button
+              type="submit"
+              disabled={!inputText.trim()}
+              className="gcore-btn-orange p-2 rounded-full disabled:opacity-40 shadow-gcore-btn"
+              title="Send text"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+
+          <div className="flex items-center justify-between gap-2">
+            <button
+              onClick={handleClose}
+              className="px-4 py-2 rounded-apple text-xs font-medium text-neutral-400 hover:text-white transition-apple"
+            >
+              Close
+            </button>
+            
+            <button
+              onClick={handleToggleMic}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold transition-apple ${
+                isRecording
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
+                  : 'gcore-btn-orange shadow-gcore-btn'
+              }`}
+            >
+              {isRecording ? <MicOff className="w-4 h-4" strokeWidth={2} /> : <Mic className="w-4 h-4" strokeWidth={2} />}
+              <span>{isRecording ? 'Listening...' : `Click to Speak (${selectedLang.toUpperCase()})`}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
