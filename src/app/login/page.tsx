@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Shield, Sparkles, Building2, UserCheck, Stethoscope, ArrowRight, Lock, Mail, Wand2, Check } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const errorParam = searchParams.get('error');
-  const redirectParam = searchParams.get('redirect');
+  const errorParam = searchParams?.get('error');
+  const redirectParam = searchParams?.get('redirect');
 
   const [email, setEmail] = useState('admin@clinicai.com');
   const [password, setPassword] = useState('••••••••••••');
@@ -236,5 +236,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }
