@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     const format = (searchParams.get('format') || 'csv').toLowerCase();
 
     if (type === 'appointments') {
-      const appointments = localStore.getAppointments(clinicId);
+      const appointments = await db.getAppointments(clinicId);
 
       if (format === 'json') {
         return NextResponse.json({ success: true, count: appointments.length, appointments });
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'calls') {
-      const calls = localStore.getCallLogs(clinicId);
+      const calls = await db.getCallLogs(clinicId);
 
       if (format === 'json') {
         return NextResponse.json({ success: true, count: calls.length, calls });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processReceptionistTurn } from '@/lib/ai/orchestrator';
-import { localStore } from '@/lib/store/local-store';
+import { detectSpokenLanguage } from '@/lib/ai/language-detector';
+import { db } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,21 +16,26 @@ export async function POST(req: NextRequest) {
     const callerPhone = caller_phone || '+91 98765 43210';
     const activeCallId = call_id;
 
+    // Detect spoken language dynamically with mid-call code-switching
+    const detected = detectSpokenLanguage(message, language || 'en');
+
     if (activeCallId) {
-      let callLog = localStore.getCallLogById(activeCallId);
+      let callLog = await db.getCallLogById(activeCallId);
       if (!callLog) {
-        localStore.logCall({
+        await db.logCall({
           id: activeCallId,
           clinic_id: clinicId,
           caller_phone: callerPhone,
           duration_seconds: 0,
           call_intent: 'Live WebRTC / Simulator Interaction',
           outcome: 'FAQ_ANSWERED',
+          detected_language: detected.language,
         });
       }
-      localStore.addDialogueTurn(activeCallId, {
+      db.addDialogueTurn(activeCallId, {
         speaker: 'user',
         text: message,
+        language: detected.language,
         timestamp: new Date().toISOString(),
       });
     }
@@ -41,23 +47,23 @@ export async function POST(req: NextRequest) {
       callerPhone,
       groq_api_key,
       openai_api_key,
-      language
+      detected.language
     );
 
     if (activeCallId) {
-      localStore.addDialogueTurn(activeCallId, {
+      db.addDialogueTurn(activeCallId, {
         speaker: 'ai',
         text: result.reply,
         latency_ms: result.latency_ms,
         tool_called: result.tool_called,
-        language: result.language,
+        language: result.language || detected.language,
         timestamp: new Date().toISOString(),
       });
 
       if (result.call_outcome) {
-        localStore.updateCallLog(activeCallId, {
+        await db.updateCallLog(activeCallId, {
           outcome: result.call_outcome as any,
-          detected_language: result.language,
+          detected_language: result.language || detected.language,
         });
       }
     }
@@ -66,6 +72,9 @@ export async function POST(req: NextRequest) {
       success: true,
       call_id: activeCallId,
       ...result,
+      detected_language: result.language || detected.language,
+      voice_id: detected.voice_id,
+      language_name: detected.language_name,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

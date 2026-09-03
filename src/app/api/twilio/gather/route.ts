@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processReceptionistTurn } from '@/lib/ai/orchestrator';
 import { buildSpeechResponseTwiML, buildHumanTransferTwiML } from '@/lib/twilio/twiml';
-import { localStore } from '@/lib/store/local-store';
+import { validateTwilioRequest } from '@/lib/twilio/validator';
+import { db } from '@/lib/db';
 import { buildLiveContext } from '@/lib/ai/context-injector';
 
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData().catch(() => new FormData());
+    const formParams: Record<string, string> = {};
+    formData.forEach((val, key) => {
+      formParams[key] = String(val);
+    });
+
+    // ── Cryptographic Signature Verification ──
+    const validation = await validateTwilioRequest(req, formParams);
+    if (!validation.isValid) {
+      console.error('Twilio Gather Webhook signature validation failed:', validation.reason);
+      return new NextResponse('Unauthorized: Invalid Twilio Signature', { status: 403 });
+    }
+
     const speechResult = (formData.get('SpeechResult') as string) || '';
     const fromNumber = (formData.get('From') as string) || '+91-UNKNOWN';
     const callSid = (formData.get('CallSid') as string) || '';
@@ -14,11 +27,9 @@ export async function POST(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const clinicId = searchParams.get('clinic_id') || '00000000-0000-0000-0000-000000000001';
 
-    const clinic = localStore.getClinicById(clinicId);
-    const settings = localStore.getClinicSettings(clinicId);
+    const settings = await db.getClinicSettings(clinicId);
 
-    // ─── D1: Dynamic Context Injection ──────────────────────────────────────
-    // Fetch live doctors, FAQs, and open slots before each turn
+    // ─── Dynamic Context Injection ───
     const liveCtx = buildLiveContext(clinicId);
 
     // If caller didn't say anything
@@ -32,9 +43,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ─── D3: Log user's speech turn ─────────────────────────────────────────
+    // ─── Log user's speech turn ───
     if (callSid) {
-      localStore.addDialogueTurn(callSid, {
+      db.addDialogueTurn(callSid, {
         speaker: 'user',
         text: speechResult,
         timestamp: new Date().toISOString(),
@@ -52,9 +63,9 @@ export async function POST(req: NextRequest) {
     const isEscalated = aiResult.call_outcome === 'ESCALATED' || aiResult.tool_called === 'transfer_call_to_human';
     const isEndCall = aiResult.call_outcome === 'COMPLETED' || aiResult.call_outcome === 'BOOKED';
 
-    // ─── D3: Log AI response turn with latency ───────────────────────────────
+    // ─── Log AI response turn with latency ───
     if (callSid) {
-      localStore.addDialogueTurn(callSid, {
+      db.addDialogueTurn(callSid, {
         speaker: 'ai',
         text: aiResult.reply,
         tool_called: aiResult.tool_called,
@@ -64,12 +75,12 @@ export async function POST(req: NextRequest) {
       });
 
       // Update call log transcript preview and outcome
-      const existing = localStore.getCallLogBySid(callSid);
+      const existing = await db.getCallLogBySid(callSid);
       const updatedPreview = existing?.transcript_preview
         ? `${existing.transcript_preview} | User: "${speechResult}" -> AI: "${aiResult.reply}"`
         : `User: "${speechResult}" -> AI: "${aiResult.reply}"`;
 
-      localStore.updateCallLog(callSid, {
+      await db.updateCallLog(callSid, {
         transcript_preview: updatedPreview,
         outcome: isEscalated ? 'ESCALATED' : (isEndCall ? 'BOOKED' : 'FAQ_ANSWERED'),
         detected_language: aiResult.language,
@@ -96,7 +107,6 @@ export async function POST(req: NextRequest) {
       isEndCall
     );
 
-    // Expose live context info in a header for debugging
     const response = new NextResponse(replyTwiml, {
       headers: {
         'Content-Type': 'application/xml; charset=utf-8',
@@ -115,5 +125,3 @@ export async function POST(req: NextRequest) {
     });
   }
 }
-
-

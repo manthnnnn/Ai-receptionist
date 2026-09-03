@@ -19,48 +19,12 @@ export interface OrchestratorResult {
   call_outcome?: string;
 }
 
+import { detectSpokenLanguage, SupportedLanguage } from './language-detector';
+
 // Detect language of incoming utterance with comprehensive Marathi/Hindi/English markers
 function detectLanguage(text: string, clientHint?: 'mr' | 'hi' | 'en'): 'mr' | 'hi' | 'en' {
-  const lower = text.toLowerCase();
-
-  // Explicit Language Switch Requests
-  if (lower.includes('marathi') || lower.includes('मराठी') || lower.includes('मराठीत') || lower.includes('मराठीमध्ये') || lower.includes('मराठी बोला')) {
-    return 'mr';
-  }
-  if (lower.includes('hindi') || lower.includes('हिंदी') || lower.includes('हिंदी में')) {
-    return 'hi';
-  }
-  if (lower.includes('english') || lower.includes('इंग्रजी') || lower.includes('अंग्रेजी') || lower.includes('speak in english')) {
-    return 'en';
-  }
-
-  // Marathi specific vocabulary & grammar markers (Devanagari)
-  const marathiRegex = /[\u0900-\u097F]*(मराठी|बोला|सांगा|आहे|नाही|कधी|करायची|भेट|वेळ|किती|पाहिजे|उद्या|परवा|सकाळी|दुपारी|संध्याकाळी|रात्री|माझं|माझे|मला|आमचे|करावी|येईल|होय|शुल्क|दवाखाना|रुग्ण|घ्यायची|द्या|करा|कसं|कसा|कशी|चालेल|दुखतोय|दुखतंय|दात|कळ|नक्की|नक्कीच|काय|हवं|हवी|आहात|पडताळणी|तपासणी|उपचार)[\u0900-\u097F]*/i;
-  // Romanized Marathi
-  const marathiRoman = /\b(marathi|marathit|marathimadhe|namaskar|ahe|nahi|kadhi|karaychi|bhet|vel|kiti|pahije|udya|parwa|shulka|sanga|majh|majhe|nav|kara|madhe|mala|davakhana|dukhtoy|dat|nakki|kay|kasa|kashi|havi|hav|chala|ho|chalel|tapasni)\b/i;
-
-  if (marathiRegex.test(text) || marathiRoman.test(lower)) {
-    return 'mr';
-  }
-
-  // Hindi specific markers (Devanagari or Romanized)
-  const hindiRegex = /[\u0900-\u097F]*(है|हूँ|नमस्ते|कल|समय|कितना|कितनी|चाहिए|करना|कृपया|बताइए|बताओ|मुझे|मेरा|मेरी|हमारा|होगी|सकता|अस्पताल|इलाज|दर्द|दांत|जांच|दवा)[\u0900-\u097F]*/i;
-  const hindiRoman = /\b(namaste|hai|hoon|kal|samay|fees|kitna|kitni|chahiye|karna|kripya|bataiye|mujhe|mera|karein|aapse|batayein|ilaaj|dard|daant)\b/i;
-
-  if (hindiRegex.test(text) || hindiRoman.test(lower)) {
-    return 'hi';
-  }
-
-  // If client passed a hint and no contradicting language was detected, trust the client
-  if (clientHint) {
-    return clientHint;
-  }
-
-  if (/[\u0900-\u097F]/.test(text)) {
-    return 'hi';
-  }
-
-  return 'en';
+  const result = detectSpokenLanguage(text, clientHint || 'en');
+  return result.language;
 }
 
 // Call live LLM (Groq / OpenRouter / OpenAI) with high-speed edge models

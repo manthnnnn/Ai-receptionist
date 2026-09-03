@@ -1,4 +1,4 @@
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 import { calculateAvailableSlots } from '@/lib/scheduling/slot-engine';
 import {
   GetClinicInfoSchema,
@@ -17,9 +17,9 @@ export const clinicTools = {
   // 1. Get Clinic Information & FAQs
   get_clinic_information: async (args: unknown) => {
     const parsed = GetClinicInfoSchema.parse(args);
-    const clinic = localStore.getClinicById(parsed.clinic_id);
-    const settings = localStore.getClinicSettings(parsed.clinic_id);
-    const faqs = localStore.getClinicFAQs(parsed.clinic_id);
+    const clinic = await db.getClinicById(parsed.clinic_id);
+    const settings = await db.getClinicSettings(parsed.clinic_id);
+    const faqs = await db.getClinicFAQs(parsed.clinic_id);
 
     if (!clinic) {
       return { success: false, error: 'Clinic not found' };
@@ -44,7 +44,7 @@ export const clinicTools = {
   // 2. Get Doctor Information & Roster
   get_doctor_information: async (args: unknown) => {
     const parsed = GetDoctorInfoSchema.parse(args);
-    let doctors = localStore.getDoctors(parsed.clinic_id);
+    let doctors = await db.getDoctors(parsed.clinic_id);
 
     if (parsed.specialty) {
       const specLower = parsed.specialty.toLowerCase();
@@ -79,7 +79,7 @@ export const clinicTools = {
 
     // If doctor name was given instead of doctor ID, find doctor
     if (!doctorId && parsed.doctor_name) {
-      const doctors = localStore.getDoctors(parsed.clinic_id);
+      const doctors = await db.getDoctors(parsed.clinic_id);
       const matched = doctors.find((d) =>
         d.name.toLowerCase().includes(parsed.doctor_name!.toLowerCase())
       );
@@ -90,7 +90,7 @@ export const clinicTools = {
 
     // Default to first active doctor if neither was provided
     if (!doctorId) {
-      const doctors = localStore.getDoctors(parsed.clinic_id);
+      const doctors = await db.getDoctors(parsed.clinic_id);
       if (doctors.length > 0) {
         doctorId = doctors[0].id;
       } else {
@@ -98,7 +98,7 @@ export const clinicTools = {
       }
     }
 
-    const doctor = localStore.getDoctorById(doctorId);
+    const doctor = await db.getDoctorById(doctorId);
     const availableSlots = calculateAvailableSlots(parsed.clinic_id, doctorId, parsed.target_date);
 
     return {
@@ -119,13 +119,13 @@ export const clinicTools = {
   // 4. Book Appointment (Atomic) — with alternative slot negotiation on collision
   book_appointment: async (args: unknown) => {
     const parsed = BookAppointmentSchema.parse(args);
-    const doctor = localStore.getDoctorById(parsed.doctor_id);
+    const doctor = await db.getDoctorById(parsed.doctor_id);
     const durationMins = doctor?.consultation_duration_minutes || 30;
 
     const startDate = new Date(parsed.start_at);
     const endDate = new Date(startDate.getTime() + durationMins * 60000);
 
-    const result = localStore.bookAppointmentAtomic({
+    const result = await db.bookAppointment({
       clinic_id: parsed.clinic_id,
       doctor_id: parsed.doctor_id,
       patient_name: parsed.patient_name,
@@ -168,7 +168,7 @@ export const clinicTools = {
   // 5. Get Patient Appointments (With Verification)
   get_patient_appointments: async (args: unknown) => {
     const parsed = GetPatientAppointmentsSchema.parse(args);
-    const appointments = localStore.getAppointments(parsed.clinic_id, {
+    const appointments = await db.getAppointments(parsed.clinic_id, {
       status: 'CONFIRMED',
     });
 
@@ -204,7 +204,7 @@ export const clinicTools = {
   // 6. Cancel Appointment (With Verification)
   cancel_appointment: async (args: unknown) => {
     const parsed = CancelAppointmentSchema.parse(args);
-    const app = localStore.getAppointmentById(parsed.appointment_id);
+    const app = await db.getAppointmentById(parsed.appointment_id);
 
     if (!app) {
       return { success: false, error: 'Appointment not found.' };
@@ -220,13 +220,13 @@ export const clinicTools = {
       };
     }
 
-    return localStore.cancelAppointment(parsed.appointment_id, parsed.reason || 'Cancelled via AI Voice');
+    return db.cancelAppointment(parsed.appointment_id, parsed.reason || 'Cancelled via AI Voice');
   },
 
   // 7. Reschedule Appointment (With Verification)
   reschedule_appointment: async (args: unknown) => {
     const parsed = RescheduleAppointmentSchema.parse(args);
-    const app = localStore.getAppointmentById(parsed.appointment_id);
+    const app = await db.getAppointmentById(parsed.appointment_id);
 
     if (!app) {
       return { success: false, error: 'Appointment not found.' };
@@ -242,23 +242,23 @@ export const clinicTools = {
       };
     }
 
-    const doctor = localStore.getDoctorById(app.doctor_id);
+    const doctor = await db.getDoctorById(app.doctor_id);
     const durationMins = doctor?.consultation_duration_minutes || 30;
     const newStart = new Date(parsed.new_start_at);
     const newEnd = new Date(newStart.getTime() + durationMins * 60000);
 
-    return localStore.rescheduleAppointment(parsed.appointment_id, parsed.new_start_at, newEnd.toISOString());
+    return db.rescheduleAppointment(parsed.appointment_id, parsed.new_start_at, newEnd.toISOString());
   },
 
   // 8. Transfer to Human Staff
   transfer_to_human: async (args: unknown) => {
     const parsed = TransferToHumanSchema.parse(args);
-    const settings = localStore.getClinicSettings(parsed.clinic_id);
+    const settings = await db.getClinicSettings(parsed.clinic_id);
 
     const handoffNumber = settings?.primary_handoff_number || '+91-98765-00001';
 
     // Log escalation outcome
-    localStore.logCall({
+    await db.logCall({
       clinic_id: parsed.clinic_id,
       caller_phone: '+91 Caller',
       duration_seconds: 45,
@@ -275,10 +275,14 @@ export const clinicTools = {
     };
   },
 
-  // 9. Get Clinic FAQs by Category (NEW – Task 2 Person 2)
+  // 9. Get Clinic FAQs by Category
   get_clinic_faqs: async (args: unknown) => {
     const parsed = GetClinicFAQsSchema.parse(args);
-    const faqs = localStore.getClinicFAQs(parsed.clinic_id, parsed.category);
+    let faqs = await db.getClinicFAQs(parsed.clinic_id);
+    if (parsed.category) {
+      const catLower = parsed.category.toLowerCase();
+      faqs = faqs.filter((f) => f.category.toLowerCase() === catLower);
+    }
 
     if (faqs.length === 0) {
       return {
@@ -302,10 +306,10 @@ export const clinicTools = {
     };
   },
 
-  // 10. Log Dialogue Turn (NEW – Task 2 Person 2)
+  // 10. Log Dialogue Turn
   log_dialogue_turn: async (args: unknown) => {
     const parsed = LogDialogueTurnSchema.parse(args);
-    const result = localStore.addDialogueTurn(parsed.call_sid, {
+    const result = db.addDialogueTurn(parsed.call_sid, {
       speaker: parsed.speaker,
       text: parsed.text,
       tool_called: parsed.tool_called,

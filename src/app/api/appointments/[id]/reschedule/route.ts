@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 
 export async function POST(
   req: NextRequest,
@@ -15,7 +15,7 @@ export async function POST(
     }
 
     const calculatedEndAt = new_end_at || new Date(new Date(new_start_at).getTime() + 30 * 60000).toISOString();
-    const result = localStore.rescheduleAppointment(appointmentId, new_start_at, calculatedEndAt);
+    const result = await db.rescheduleAppointment(appointmentId, new_start_at, calculatedEndAt);
 
     if (!result.success) {
       return NextResponse.json(result, { status: 409 });

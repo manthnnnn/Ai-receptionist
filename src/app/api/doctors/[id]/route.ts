@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 
 export async function PATCH(
   req: NextRequest,
@@ -9,7 +9,7 @@ export async function PATCH(
     const doctorId = params.id;
     const body = await req.json();
 
-    const existingDoctor = localStore.getDoctorById(doctorId);
+    const existingDoctor = await db.getDoctorById(doctorId);
     if (!existingDoctor) {
       return NextResponse.json(
         { success: false, error: 'Doctor not found' },
@@ -25,7 +25,7 @@ export async function PATCH(
     if (body.consultation_duration_minutes !== undefined) updates.consultation_duration_minutes = Number(body.consultation_duration_minutes);
     if (body.is_active !== undefined) updates.is_active = Boolean(body.is_active);
 
-    const updated = localStore.updateDoctor(doctorId, updates);
+    const updated = await db.updateDoctor(doctorId, updates);
 
     return NextResponse.json({
       success: true,
@@ -45,7 +45,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const doctor = localStore.getDoctorById(params.id);
+    const doctor = await db.getDoctorById(params.id);
     if (!doctor) {
       return NextResponse.json({ success: false, error: 'Doctor not found' }, { status: 404 });
     }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status') || undefined;
     const query = searchParams.get('query') || undefined;
 
-    let appointments = localStore.getAppointments(clinicId, {
+    let appointments = await db.getAppointments(clinicId, {
       date,
       doctorId,
       status,
@@ -48,13 +48,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const doctor = localStore.getDoctorById(doctor_id);
+    const doctor = await db.getDoctorById(doctor_id);
     const durationMins = doctor?.consultation_duration_minutes || 30;
     const calculatedEndAt = end_at || new Date(new Date(start_at).getTime() + durationMins * 60000).toISOString();
 
     const clinicId = clinic_id || '00000000-0000-0000-0000-000000000001';
 
-    const result = localStore.bookAppointmentAtomic({
+    const result = await db.bookAppointment({
       clinic_id: clinicId,
       doctor_id,
       patient_name,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
     if (callId || convId) {
       const targetId = (callId || convId)!;
-      const result = localStore.getConversationWithMessages(targetId);
+      const result = await db.getConversationWithMessages(targetId);
       if (!result) {
         return NextResponse.json({ success: false, error: 'Conversation not found' }, { status: 404 });
       }
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const conversations = localStore.getConversations(clinicId || undefined);
+    const conversations = await db.getConversations(clinicId || undefined);
     return NextResponse.json({
       success: true,
       count: conversations.length,
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     let targetConvId = conversation_id;
     if (!targetConvId && call_id) {
-      const conv = localStore.getConversationByCallId(call_id) || localStore.createConversation(call_id);
+      const conv = (await db.getConversationByCallId(call_id)) || (await db.createConversation(call_id));
       targetConvId = conv.id;
     }
 
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Either call_id or conversation_id is required' }, { status: 400 });
     }
 
-    const message = localStore.addMessage(
+    const message = await db.addMessage(
       targetConvId,
       speaker as 'PATIENT' | 'RECEPTIONIST' | 'SYSTEM',
       content,

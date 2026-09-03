@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useClinic } from '@/components/layout/clinic-context';
 import { CallLog, DialogueTurn } from '@/types';
-import { Phone, X, Zap, Globe, Clock, PhoneCall, CheckCircle2, ArrowUpRight, Activity } from 'lucide-react';
+import { Phone, X, Zap, Globe, Clock, PhoneCall, CheckCircle2, ArrowUpRight, Activity, Play, Pause, Volume2, Shield } from 'lucide-react';
 import { formatDuration } from '@/lib/utils';
 
 const LANG_LABELS: Record<string, { label: string; color: string }> = {
@@ -74,6 +74,35 @@ export default function CallsPage() {
   const [calls, setCalls] = useState<CallLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCall, setSelectedCall] = useState<CallLog | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioLoading, setAudioLoading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+  const handlePlaySignedRecording = async (callId: string) => {
+    if (audioUrl && isPlaying) {
+      audioPlayerRef.current?.pause();
+      setIsPlaying(false);
+      return;
+    }
+    try {
+      setAudioLoading(true);
+      const res = await fetch(`/api/calls/${callId}/recording`);
+      const data = await res.json();
+      if (data.success && data.signed_url) {
+        setAudioUrl(data.signed_url);
+        if (audioPlayerRef.current) {
+          audioPlayerRef.current.src = data.signed_url;
+          audioPlayerRef.current.play();
+          setIsPlaying(true);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load recording:', err);
+    } finally {
+      setAudioLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetch(`/api/calls?clinic_id=${activeClinicId}`)
@@ -257,6 +286,39 @@ export default function CallsPage() {
                   <span className="font-medium flex items-center gap-1"><Globe className="w-3 h-3 text-gcore-orange" /> Language</span>
                   <LanguageBadge lang={selectedCall.detected_language || 'mr'} />
                 </div>
+              </div>
+            </div>
+
+            {/* Audio Recording Player (Signed URL) */}
+            <div className="px-6 pt-3 shrink-0">
+              <div className="bg-slate-900/90 border border-slate-800 rounded-apple-lg p-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={() => handlePlaySignedRecording(selectedCall.id)}
+                    disabled={audioLoading}
+                    className="w-8 h-8 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white flex items-center justify-center shadow-md transition-transform active:scale-95 disabled:opacity-50"
+                  >
+                    {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                  </button>
+                  <div>
+                    <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                      <Volume2 className="w-3.5 h-3.5 text-orange-400" />
+                      <span>{audioLoading ? 'Generating Signed Audio Stream...' : isPlaying ? 'Playing Call Audio...' : 'Play Call Recording'}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                      <Shield className="w-3 h-3 text-teal-400" />
+                      <span>Supabase Storage &bull; Private Signed URL (3600s TTL)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <audio
+                  ref={audioPlayerRef}
+                  onEnded={() => setIsPlaying(false)}
+                  onPause={() => setIsPlaying(false)}
+                  onPlay={() => setIsPlaying(true)}
+                  className="hidden"
+                />
               </div>
             </div>
 

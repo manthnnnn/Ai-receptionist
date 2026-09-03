@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const patientId = params.id;
-    const data = localStore.getPatientWithHistory(patientId);
+    const data = await db.getPatientWithHistory(patientId);
 
     if (!data) {
       return NextResponse.json({ success: false, error: 'Patient not found' }, { status: 404 });

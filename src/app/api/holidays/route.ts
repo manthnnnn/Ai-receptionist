@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const clinicId = searchParams.get('clinic_id') || '00000000-0000-0000-0000-000000000001';
 
-    const holidays = localStore.getClinicHolidays(clinicId);
+    const holidays = await db.getClinicHolidays(clinicId);
     return NextResponse.json({
       success: true,
       clinic_id: clinicId,
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const holiday = localStore.addClinicHoliday({
+    const holiday = await db.addClinicHoliday({
       clinic_id: body.clinic_id,
       start_at: body.start_at,
       end_at: body.end_at,
@@ -49,7 +49,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Holiday ID is required' }, { status: 400 });
     }
 
-    const deleted = localStore.deleteClinicHoliday(id);
+    const deleted = await db.deleteClinicHoliday(id);
     return NextResponse.json({ success: deleted });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

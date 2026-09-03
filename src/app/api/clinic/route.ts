@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
 import { localStore } from '@/lib/store/local-store';
 
 export async function GET(req: NextRequest) {
@@ -8,7 +9,7 @@ export async function GET(req: NextRequest) {
     const all = searchParams.get('all');
 
     if (all === 'true') {
-      const clinicsOverview = localStore.getClinicsOverview();
+      const clinicsOverview = await db.getClinicsOverview();
       return NextResponse.json({
         success: true,
         clinics: clinicsOverview,
@@ -16,9 +17,9 @@ export async function GET(req: NextRequest) {
     }
 
     const activeId = clinicId || '00000000-0000-0000-0000-000000000001';
-    const clinic = localStore.getClinicById(activeId);
-    const settings = localStore.getClinicSettings(activeId);
-    const stats = localStore.getStats(activeId);
+    const clinic = await db.getClinicById(activeId);
+    const settings = await db.getClinicSettings(activeId);
+    const stats = await db.getAnalytics(activeId);
 
     return NextResponse.json({
       success: true,
@@ -80,6 +81,7 @@ export async function PATCH(req: NextRequest) {
       primary_language,
       plan_tier,
       monthly_minute_limit,
+      recording_policy,
     } = body;
 
     const clinicId = clinic_id || '00000000-0000-0000-0000-000000000001';
@@ -99,7 +101,7 @@ export async function PATCH(req: NextRequest) {
     if (backup_handoff_number !== undefined) clinicUpdates.backup_handoff_number = backup_handoff_number;
     if (ai_greeting !== undefined) clinicUpdates.ai_greeting = ai_greeting;
     
-    const updatedClinic = localStore.updateClinic(clinicId, clinicUpdates);
+    const updatedClinic = await db.updateClinic(clinicId, clinicUpdates);
 
     // Update settings
     const settingsUpdates: any = {};
@@ -110,8 +112,9 @@ export async function PATCH(req: NextRequest) {
     if (ai_enabled !== undefined) settingsUpdates.ai_enabled = Boolean(ai_enabled);
     if (agent_name !== undefined) settingsUpdates.agent_name = agent_name;
     if (primary_language !== undefined) settingsUpdates.primary_language = primary_language;
+    if (recording_policy !== undefined) settingsUpdates.recording_policy = recording_policy;
 
-    const updatedSettings = localStore.updateClinicSettings(clinicId, settingsUpdates);
+    const updatedSettings = await db.updateClinicSettings(clinicId, settingsUpdates);
 
     return NextResponse.json({
       success: true,

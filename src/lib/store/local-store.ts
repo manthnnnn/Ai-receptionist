@@ -1506,6 +1506,54 @@ class LocalStore {
     };
   }
 
+  getPatientByPhone(phone: string, clinicId?: string): Patient | undefined {
+    this.ensureAdvancedStoreInitialized();
+    const clean = phone.replace(/\D/g, '');
+    return this.patients.find((p) => {
+      if (clinicId && p.clinic_id !== clinicId) return false;
+      const pClean = p.phone.replace(/\D/g, '');
+      return pClean === clean || pClean.endsWith(clean) || clean.endsWith(pClean);
+    });
+  }
+
+  createPatient(patient: { clinic_id: string; name: string; phone: string; email?: string }): Patient {
+    this.ensureAdvancedStoreInitialized();
+    const newPatient: Patient = {
+      id: `pat-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      clinic_id: patient.clinic_id,
+      name: patient.name,
+      phone: patient.phone,
+      email: patient.email,
+      created_at: new Date().toISOString(),
+    };
+    this.patients.push(newPatient);
+    return newPatient;
+  }
+
+  getDialogueTurns(callSid: string): DialogueTurn[] {
+    const log = this.getCallLogBySid(callSid) || this.getCallLogById(callSid);
+    return log?.dialogue_turns || [];
+  }
+
+  createClinicFAQ(faq: Omit<ClinicFAQ, 'id' | 'created_at'>): ClinicFAQ {
+    return this.addFAQ(faq);
+  }
+
+  updateClinicFAQ(id: string, updates: Partial<ClinicFAQ>): ClinicFAQ | undefined {
+    const f = this.faqs.find((item) => item.id === id);
+    if (!f) return undefined;
+    Object.assign(f, updates);
+    return f;
+  }
+
+  deleteClinicFAQ(id: string): boolean {
+    return this.deleteFAQ(id);
+  }
+
+  getAnalytics(clinicId: string) {
+    return this.getClinicAnalytics(clinicId);
+  }
+
   // Safety initializer for hot reload
   ensureAdvancedStoreInitialized() {
     this.ensureConversationsInitialized();

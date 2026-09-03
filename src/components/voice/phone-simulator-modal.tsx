@@ -413,7 +413,13 @@ export function PhoneSimulatorModal() {
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          const turnLang = data.language || selectedLangRef.current;
+          const turnLang = (data.detected_language || data.language || selectedLangRef.current) as 'en' | 'hi' | 'mr';
+          if (turnLang && turnLang !== selectedLangRef.current) {
+            console.log(`[Multilingual Voice] Auto mid-call code-switched: ${selectedLangRef.current} -> ${turnLang}`);
+            setSelectedLang(turnLang);
+            selectedLangRef.current = turnLang;
+          }
+
           const emotion = detectEmotion(data.reply);
           setCurrentEmotion(emotion);
           

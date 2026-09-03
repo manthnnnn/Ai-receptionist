@@ -40,6 +40,7 @@ export interface ClinicSettings {
   primary_language?: 'mr' | 'hi' | 'en';
   primary_handoff_number: string;
   backup_handoff_number?: string;
+  recording_policy?: 'ALWAYS' | 'CONSENT_REQUIRED' | 'DISABLED';
 }
 
 export interface Profile {

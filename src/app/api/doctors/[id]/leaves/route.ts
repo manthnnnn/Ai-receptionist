@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const doctorId = params.id;
-    const leaves = localStore.getDoctorLeaves(doctorId);
+    const leaves = await db.getDoctorLeaves(doctorId);
     return NextResponse.json({
       success: true,
       doctor_id: doctorId,
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       );
     }
 
-    const leave = localStore.addDoctorLeave({
+    const leave = await db.addDoctorLeave({
       doctor_id: doctorId,
       start_at: body.start_at,
       end_at: body.end_at,
@@ -49,7 +49,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ success: false, error: 'leave_id is required' }, { status: 400 });
     }
 
-    const deleted = localStore.deleteDoctorLeave(leaveId);
+    const deleted = await db.deleteDoctorLeave(leaveId);
     return NextResponse.json({ success: deleted });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

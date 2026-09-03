@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateAvailableSlots } from '@/lib/scheduling/slot-engine';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!doctorId) {
-      const docs = localStore.getDoctors(clinicId);
+      const docs = await db.getDoctors(clinicId);
       if (docs.length > 0) {
         doctorId = docs[0].id;
       } else {

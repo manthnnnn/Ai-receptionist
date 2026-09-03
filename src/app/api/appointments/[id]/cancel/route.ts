@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 
 export async function POST(
   req: NextRequest,
@@ -10,7 +10,7 @@ export async function POST(
     const body = await req.json().catch(() => ({}));
     const reason = body.reason || 'Cancelled by staff/patient';
 
-    const result = localStore.cancelAppointment(appointmentId, reason);
+    const result = await db.cancelAppointment(appointmentId, reason);
 
     if (!result.success) {
       return NextResponse.json(result, { status: 404 });

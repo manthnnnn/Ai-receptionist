@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
+import { validateTwilioRequest } from '@/lib/twilio/validator';
+import { uploadCallRecording } from '@/lib/storage/recording-uploader';
 import { CallOutcome } from '@/types';
 
 export async function POST(req: NextRequest) {
@@ -11,8 +13,10 @@ export async function POST(req: NextRequest) {
     let toNumber = '';
     let timestamp = '';
     let recordingUrl = '';
+    const formParams: Record<string, string> = {};
 
     const contentType = req.headers.get('content-type') || '';
+    const retryCountHeader = req.headers.get('x-twilio-retry-count') || '0';
 
     if (contentType.includes('application/json')) {
       const json = await req.json().catch(() => ({}));
@@ -23,6 +27,7 @@ export async function POST(req: NextRequest) {
       toNumber = json.To || json.to || '';
       timestamp = json.Timestamp || json.timestamp || json.ended_at || new Date().toISOString();
       recordingUrl = json.RecordingUrl || json.recording_url || json.audio_url || '';
+      Object.entries(json).forEach(([k, v]) => { formParams[k] = String(v); });
     } else {
       const formData = await req.formData().catch(() => new FormData());
       callSid = (formData.get('CallSid') as string) || (formData.get('call_sid') as string) || '';
@@ -32,12 +37,20 @@ export async function POST(req: NextRequest) {
       toNumber = (formData.get('To') as string) || '';
       timestamp = (formData.get('Timestamp') as string) || new Date().toISOString();
       recordingUrl = (formData.get('RecordingUrl') as string) || (formData.get('recording_url') as string) || '';
+      formData.forEach((val, key) => { formParams[key] = String(val); });
+    }
+
+    // ── Cryptographic Signature Verification ──
+    const validation = await validateTwilioRequest(req, formParams);
+    if (!validation.isValid) {
+      console.error('Twilio Status Webhook signature validation failed:', validation.reason);
+      return new NextResponse('Unauthorized: Invalid Twilio Signature', { status: 403 });
     }
 
     const durationSec = callDuration ? parseInt(String(callDuration), 10) : 0;
     const normStatus = (callStatus || 'completed').toLowerCase();
 
-    // Map Twilio CallStatus to terminal outcome per PRD Section 4
+    // Map Twilio CallStatus to terminal outcome
     let terminalOutcome: CallOutcome = 'FAQ_ANSWERED';
     if (normStatus === 'no-answer' || normStatus === 'canceled' || normStatus === 'cancelled') {
       terminalOutcome = 'ABANDONED';
@@ -47,11 +60,23 @@ export async function POST(req: NextRequest) {
       terminalOutcome = 'FAQ_ANSWERED';
     }
 
-    const clinic = toNumber ? localStore.getClinicByPhone(toNumber) : localStore.getClinics()[0];
+    const clinic = toNumber ? (await db.getClinicByPhone(toNumber)) : (await db.getClinics())[0];
     const clinicId = clinic?.id || '00000000-0000-0000-0000-000000000001';
 
-    // Find and update existing call log by callSid or create terminal log
-    const existing = callSid ? localStore.getCallLogBySid(callSid) : undefined;
+    // ── Idempotency Check & Terminal Deduplication ──
+    const existing = callSid ? (await db.getCallLogBySid(callSid)) : undefined;
+    
+    // If webhook is a retry and call is already recorded with terminal status and recording
+    if (existing && parseInt(retryCountHeader, 10) > 0 && existing.ended_at && (!recordingUrl || existing.recording_url)) {
+      return NextResponse.json({
+        success: true,
+        idempotent_duplicate: true,
+        call_sid: callSid,
+        outcome: existing.outcome,
+        message: 'Idempotent status callback acknowledged without modification.',
+      });
+    }
+
     if (existing) {
       // Preserve existing higher-priority outcomes (BOOKED, RESCHEDULED, CANCELLED)
       const finalOutcome: CallOutcome = (
@@ -61,7 +86,7 @@ export async function POST(req: NextRequest) {
         existing.outcome === 'ESCALATED'
       ) ? existing.outcome : terminalOutcome;
 
-      localStore.updateCallLog(callSid, {
+      await db.updateCallLog(callSid, {
         duration_seconds: durationSec > 0 ? durationSec : existing.duration_seconds,
         ended_at: timestamp || new Date().toISOString(),
         outcome: finalOutcome,
@@ -69,7 +94,7 @@ export async function POST(req: NextRequest) {
         transfer_status: normStatus === 'busy' || normStatus === 'failed' ? 'ESCALATED_TO_HUMAN' : undefined,
       });
     } else if (callSid) {
-      localStore.logCall({
+      await db.logCall({
         id: callSid,
         clinic_id: clinicId,
         caller_phone: fromNumber,
@@ -84,6 +109,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // ── Ingest audio recording to Supabase Storage if URL provided ──
+    if (recordingUrl && callSid) {
+      // Background async upload to private storage bucket
+      uploadCallRecording(clinicId, callSid, recordingUrl).catch((err) => {
+        console.error('Failed to upload recording to Supabase Storage:', err);
+      });
+    }
+
     return NextResponse.json({
       success: true,
       call_sid: callSid,
@@ -92,6 +125,7 @@ export async function POST(req: NextRequest) {
       ended_at: timestamp,
       recording_url: recordingUrl || existing?.recording_url,
       outcome: existing?.outcome || terminalOutcome,
+      retry_count: retryCountHeader,
     });
   } catch (error: any) {
     console.error('Error in Twilio Status Webhook:', error);
@@ -104,7 +138,7 @@ export async function GET(req: NextRequest) {
   const callSid = searchParams.get('call_sid') || searchParams.get('CallSid');
 
   if (callSid) {
-    const log = localStore.getCallLogBySid(callSid);
+    const log = await db.getCallLogBySid(callSid);
     if (log) {
       return NextResponse.json({
         success: true,
@@ -115,7 +149,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    message: 'Twilio Status Callback webhook is active and healthy.',
+    message: 'Twilio Status Callback webhook is active, idempotent, and healthy.',
     endpoint: '/api/twilio/status',
   });
 }

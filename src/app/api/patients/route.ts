@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
     const clinicId = searchParams.get('clinic_id') || '00000000-0000-0000-0000-000000000001';
     const query = searchParams.get('query') || undefined;
 
-    const patients = localStore.getPatients(clinicId, query);
+    const patients = await db.getPatients(clinicId, query);
 
     return NextResponse.json({
       success: true,

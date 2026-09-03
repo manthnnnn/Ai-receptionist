@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
@@ -8,14 +8,14 @@ export async function GET(req: NextRequest) {
     const serviceId = searchParams.get('id');
 
     if (serviceId) {
-      const service = localStore.getServiceById(serviceId);
+      const service = await db.getServiceById(serviceId);
       if (!service) {
         return NextResponse.json({ success: false, error: 'Service not found' }, { status: 404 });
       }
       return NextResponse.json({ success: true, service });
     }
 
-    const services = localStore.getServices(clinicId || undefined);
+    const services = await db.getServices(clinicId || '00000000-0000-0000-0000-000000000001');
     return NextResponse.json({
       success: true,
       count: services.length,
@@ -36,13 +36,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const service = localStore.createService({
+    const service = await db.createService({
       clinic_id: body.clinic_id,
       name: body.name,
-      description: body.description,
+      description: body.description || '',
       duration_minutes: body.duration_minutes ? Number(body.duration_minutes) : 30,
       price: body.price !== undefined ? Number(body.price) : 500,
-      is_active: body.is_active !== undefined ? Boolean(body.is_active) : true,
     });
 
     return NextResponse.json({ success: true, service }, { status: 201 });
@@ -59,7 +58,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Service ID is required' }, { status: 400 });
     }
 
-    const updated = localStore.updateService(id, {
+    const updated = await db.updateService(id, {
       name: body.name,
       description: body.description,
       duration_minutes: body.duration_minutes ? Number(body.duration_minutes) : undefined,
@@ -85,7 +84,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Service ID is required' }, { status: 400 });
     }
 
-    const deleted = localStore.deleteService(id);
+    const deleted = await db.deleteService(id);
     return NextResponse.json({ success: deleted });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

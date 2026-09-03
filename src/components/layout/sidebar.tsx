@@ -13,18 +13,23 @@ import {
   Activity,
   Settings,
   Lock,
-  Building2
+  Building2,
+  FileAudio,
+  UserSquare2,
+  Shield,
+  ArrowRight
 } from 'lucide-react';
 
 const navItems = [
-  { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Client Clinics', href: '/dashboard/clinics', icon: Building2 },
+  { name: 'Clinic Overview', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Appointments', href: '/dashboard/appointments', icon: CalendarCheck },
-  { name: 'Doctors', href: '/dashboard/doctors', icon: Users },
-  { name: 'Call Logs', href: '/dashboard/calls', icon: PhoneCall },
+  { name: 'Patient Directory', href: '/clinic/patients', icon: UserSquare2 },
+  { name: 'Doctor Rosters', href: '/dashboard/doctors', icon: Users },
+  { name: 'Call Telemetry', href: '/dashboard/calls', icon: PhoneCall },
+  { name: 'Call Recordings', href: '/clinic/recordings', icon: FileAudio },
   { name: 'Knowledge Base', href: '/dashboard/faqs', icon: HelpCircle },
   { name: 'Voice Engine', href: '/dashboard/voice-engine', icon: Cpu },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { name: 'Clinic Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
 interface SidebarProps {
@@ -42,6 +47,18 @@ export function Sidebar({ onNavClick, className = '' }: SidebarProps) {
     >
       {/* Navigation */}
       <nav className="px-3 space-y-0.5">
+        {/* Super Admin Switcher Banner */}
+        <Link
+          href="/admin"
+          className="mb-3 px-3 py-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex items-center justify-between text-xs font-medium transition-colors"
+        >
+          <div className="flex items-center gap-1.5">
+            <Shield className="w-3.5 h-3.5" />
+            <span>Super Admin Suite</span>
+          </div>
+          <ArrowRight className="w-3 h-3" />
+        </Link>
+
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
           const Icon = item.icon;

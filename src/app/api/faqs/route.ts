@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { localStore } from '@/lib/store/local-store';
+import { db } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
@@ -7,7 +7,11 @@ export async function GET(req: NextRequest) {
     const clinicId = searchParams.get('clinic_id') || '00000000-0000-0000-0000-000000000001';
     const category = searchParams.get('category') || undefined;
 
-    const faqs = localStore.getClinicFAQs(clinicId, category);
+    let faqs = await db.getClinicFAQs(clinicId);
+    if (category) {
+      const catLower = category.toLowerCase();
+      faqs = faqs.filter((f) => f.category.toLowerCase() === catLower);
+    }
 
     return NextResponse.json({
       success: true,
@@ -28,7 +32,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Question and answer are required' }, { status: 400 });
     }
 
-    const newFaq = localStore.addFAQ({
+    const newFaq = await db.createClinicFAQ({
       clinic_id: clinic_id || '00000000-0000-0000-0000-000000000001',
       category: category || 'GENERAL',
       question,
@@ -54,7 +58,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'FAQ id is required' }, { status: 400 });
     }
 
-    const deleted = localStore.deleteFAQ(id);
+    const deleted = await db.deleteClinicFAQ(id);
     return NextResponse.json({ success: deleted });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
