@@ -64,7 +64,8 @@ export async function sendAppointmentConfirmationNotification(
   const recipientPhone = appointment.patient_phone;
 
   const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
-  const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
+  const twilioApiKey = process.env.TWILIO_API_KEY || twilioAccountSid;
+  const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN || process.env.TWILIO_API_SECRET;
   const twilioPhone = process.env.TWILIO_PHONE_NUMBER || '+18005550199';
   const gupshupApiKey = process.env.GUPSHUP_API_KEY;
 
@@ -76,7 +77,8 @@ export async function sendAppointmentConfirmationNotification(
   if (channels.includes('SMS')) {
     if (twilioAccountSid && twilioAuthToken && twilioAccountSid.startsWith('AC')) {
       try {
-        const auth = Buffer.from(`${twilioAccountSid}:${twilioAuthToken}`).toString('base64');
+        const username = twilioApiKey || twilioAccountSid;
+        const auth = Buffer.from(`${username}:${twilioAuthToken}`).toString('base64');
         const params = new URLSearchParams();
         params.append('To', recipientPhone);
         params.append('From', twilioPhone);

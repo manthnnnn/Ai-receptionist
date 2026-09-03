@@ -52,7 +52,7 @@ export async function validateTwilioRequest(
   req: NextRequest,
   parsedBody?: Record<string, string>
 ): Promise<{ isValid: boolean; isBypassed: boolean; reason?: string }> {
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const authToken = process.env.TWILIO_AUTH_TOKEN || process.env.TWILIO_API_SECRET;
   const signature = req.headers.get('x-twilio-signature');
 
   // If Twilio auth token is not configured or in test mode, allow development bypass

@@ -25,8 +25,8 @@ export async function uploadCallRecording(
     }
 
     const headers: Record<string, string> = {};
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const accountSid = process.env.TWILIO_API_KEY || process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN || process.env.TWILIO_API_SECRET;
 
     if (accountSid && authToken && !authToken.includes('your-') && downloadUrl.includes('api.twilio.com')) {
       const basicAuth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
